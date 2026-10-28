@@ -1,4 +1,5 @@
 -- Songs in the most playlists
+-- Songs that show up in the most of your playlists.
 SELECT v.title, v.artist, COUNT(*) AS playlists
 FROM playlist_tracks pt
 JOIN v_tracks v ON v.track_id = pt.track_id

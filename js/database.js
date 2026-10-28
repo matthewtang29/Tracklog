@@ -33,10 +33,11 @@ export async function loadSqlFiles() {
     QUERY_NAMES.map(async (name) => [name, await fetchText(`sql/queries/${name}.sql`)])
   ));
   const examples = await Promise.all(EXAMPLE_FILES.map(async (file) => {
-    const sql = await fetchText(`sql/examples/${file}`);
-    const firstLine = sql.split("\n")[0];
-    const label = firstLine.startsWith("--") ? firstLine.slice(2).trim() : file;
-    return { label, sql: sql.split("\n").slice(1).join("\n").trim() };
+    // File format: "-- Title", "-- What it does", then the query.
+    const lines = (await fetchText(`sql/examples/${file}`)).split("\n");
+    const comments = [];
+    while (lines.length && lines[0].startsWith("--")) comments.push(lines.shift().slice(2).trim());
+    return { label: comments[0] || file, about: comments.slice(1).join(" "), sql: lines.join("\n").trim() };
   }));
   return { schema, queries, examples };
 }

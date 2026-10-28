@@ -19,7 +19,13 @@ Your file never leaves your computer. SQLite runs in the browser through [sql.js
 
 ### Cover art
 
-`Library.xml` contains no images, so `js/artwork.js` looks up each song (and each top artist) by name with Apple's public [iTunes Search API](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/) and shows the album artwork it returns. Lookups run one at a time to stay under the API's rate limit, results are cached in the browser, and anything not found keeps a plain placeholder. Only song and artist names are sent; you can turn cover art off on the page.
+`Library.xml` contains no images, so `js/artwork.js` looks up each song by name with Apple's public [iTunes Search API](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/):
+
+1. It takes a result with the same title and artist, preferring the same album and skipping live, remix and karaoke versions.
+2. If the song itself isn't returned, it uses any result by the same artist from the same album, since that has the same cover.
+3. If neither matches, the tile keeps a plain placeholder instead of showing a wrong cover.
+
+Every album cover seen in any search is remembered, so other songs from that album need no lookup. iTunes allows about 20 searches a minute, so lookups are paced and pause briefly if Apple rate-limits them. Results are cached in the browser, so covers load instantly on later visits. Each artist's picture is the cover of their most-played song (worked out in `sql/queries/top_artists.sql`). The sample library ships its covers, so it makes no lookups.
 
 ## Project structure
 
@@ -32,7 +38,7 @@ tracklog/
 │   ├── database.js          loads the .sql files, parses Library.xml, builds SQLite
 │   ├── render.js            bar charts, song lists, tables, the monthly chart
 │   ├── artwork.js           finds album covers with the iTunes Search API
-│   └── sample-library.js    invented demo library shown before you upload
+│   └── sample-library.js    demo library (real songs, invented play counts)
 └── sql/
     ├── schema.sql           tables: artists, albums, tracks, playlists, playlist_tracks + v_tracks view
     ├── queries/             one query per dashboard card

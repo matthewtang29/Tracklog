@@ -10,139 +10,143 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <div class="brand">
-      <span class="logo" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
-      </span>
-      <div>
-        <h1>Tracklog</h1>
-        <p>Your Apple Music library, turned into a SQL database.</p>
-      </div>
-    </div>
-    <div class="source" aria-live="polite">
-      <span id="source-pill" class="pill">Sample library</span>
-      <span id="msg" class="msg">Loading the database engine…</span>
-    </div>
-  </header>
 
-  <section class="intro">
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Get your library file</h2>
-        <div class="os-tabs" role="tablist" aria-label="Your computer">
-          <button role="tab" id="tab-mac" aria-selected="true" aria-controls="steps-mac">Mac</button>
-          <button role="tab" id="tab-win" aria-selected="false" aria-controls="steps-win">Windows</button>
-        </div>
-      </div>
-      <ol class="steps" id="steps-mac" role="tabpanel" aria-labelledby="tab-mac">
-        <li><span>Open the <b>Music</b> app on your Mac.</span></li>
-        <li><span>Choose File → Library → Export Library… in the menu bar.</span></li>
-        <li><span>Save it. You'll get a file called Library.xml.</span></li>
-        <li><span>Drop that file in the box.</span></li>
-      </ol>
-      <ol class="steps" id="steps-win" role="tabpanel" aria-labelledby="tab-win" hidden>
-        <li><span>Open <b>iTunes</b> on your PC.</span></li>
-        <li><span>Choose File → Library → Export Library… (press Alt if the menu bar is hidden).</span></li>
-        <li><span>Save it as XML. You'll get a file like Library.xml.</span></li>
-        <li><span>Drop that file in the box.</span></li>
-      </ol>
-      <p class="fine">Play counts include your iPhone's plays when Sync Library is turned on. The export needs a computer; the iPhone app can't make one.</p>
-    </div>
+<aside class="side">
+  <div class="brand">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg>
+    <b>Tracklog</b>
+  </div>
 
-    <div class="panel">
-      <h2>Analyze it</h2>
-      <label class="drop" id="drop" for="file">
-        <input type="file" id="file" accept=".xml,text/xml,application/xml">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="m7 9 5-5 5 5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
-        <strong>Drop Library.xml here</strong>
-        <span>or click to choose the file</span>
-      </label>
-      <div class="row-actions">
-        <label class="toggle"><input type="checkbox" id="art-toggle" checked> Show cover art</label>
-        <button class="link-btn" id="load-sample" type="button" hidden>Load the sample library again</button>
-      </div>
-      <p class="lock">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-        <span>Your file never leaves this page. A SQLite database is built and queried right here in your browser. Cover art is looked up by song and artist name with Apple's public iTunes Search; turn it off to skip that.</span>
-      </p>
+  <div>
+    <div class="nav-label">Library</div>
+    <nav class="nav" id="nav">
+      <a href="#overview" class="active">Overview</a>
+      <a href="#songs">Top Songs</a>
+      <a href="#artists">Top Artists</a>
+      <a href="#playlists">Playlists</a>
+      <a href="#genres">Genres</a>
+      <a href="#skipped">Most Skipped</a>
+      <a href="#console">SQL Console</a>
+    </nav>
+  </div>
+
+  <div class="side-card" aria-live="polite">
+    <div>
+      <b id="source-title">Sample library</b>
+      <p id="msg">Loading the database engine…</p>
+    </div>
+    <label class="btn small" for="file">Upload Library.xml</label>
+    <input type="file" id="file" accept=".xml,text/xml,application/xml" hidden>
+    <button class="link-btn" id="open-help" type="button">How do I get this file?</button>
+    <button class="link-btn" id="load-sample" type="button" hidden>Back to the sample library</button>
+    <label class="toggle"><input type="checkbox" id="art-toggle" checked> Show cover art</label>
+    <p id="art-progress" hidden></p>
+  </div>
+</aside>
+
+<main class="main loading" id="results">
+  <section class="hero" id="overview">
+    <span class="eyebrow">Your listening, by the numbers</span>
+    <div class="hero-line">
+      <span class="big" id="hero-num">—</span><span class="unit">hours</span>
+      <p id="takeaway">&nbsp;</p>
     </div>
   </section>
 
-  <div id="results" class="loading" style="display:grid; gap:20px;">
-    <section class="hero">
-      <span class="eyebrow">Your listening, by the numbers</span>
-      <p class="takeaway" id="takeaway">&nbsp;</p>
-    </section>
+  <section class="stats" aria-label="Totals">
+    <div class="stat"><strong id="t-plays">—</strong><span>Total plays</span></div>
+    <div class="stat"><strong id="t-hours">—</strong><span>Hours</span></div>
+    <div class="stat"><strong id="t-songs">—</strong><span>Songs</span></div>
+    <div class="stat"><strong id="t-artists">—</strong><span>Artists</span></div>
+    <div class="stat"><strong id="t-skip">—</strong><span>Skip rate</span></div>
+    <div class="stat"><strong id="t-never">—</strong><span>Never played</span></div>
+  </section>
 
-    <section class="tiles" aria-label="Totals">
-      <div class="tile"><span>Total plays</span><strong id="t-plays">—</strong></div>
-      <div class="tile"><span>Hours listened</span><strong id="t-hours">—</strong></div>
-      <div class="tile"><span>Songs</span><strong id="t-songs">—</strong></div>
-      <div class="tile"><span>Artists</span><strong id="t-artists">—</strong></div>
-      <div class="tile"><span>Skip rate</span><strong id="t-skip">—</strong></div>
-      <div class="tile"><span>Never played</span><strong id="t-never">—</strong></div>
-    </section>
-
-    <section class="grid">
-      <article class="card" data-q="top_artists">
-        <h2>Top Artists</h2>
-        <p class="note">By hours listened: play count × song length.</p>
-        <div class="bars" data-out></div>
-      </article>
-      <article class="card" data-q="top_songs">
-        <h2>Top Songs</h2>
-        <p class="note">Lifetime play count.</p>
-        <div class="list" data-out></div>
-      </article>
-      <article class="card" data-q="playlists">
-        <h2>Your Playlists</h2>
-        <p class="note">Total plays across each playlist's songs, and its most-played song.</p>
-        <div class="tablewrap" data-out></div>
-      </article>
-      <article class="card" data-q="genres">
-        <h2>Top Genres</h2>
-        <p class="note">Apple's genre tag on each song.</p>
-        <div class="bars" data-out></div>
-      </article>
-      <article class="card" data-q="forgotten">
-        <h2>Forgotten Favourites</h2>
-        <p class="note">Played 30+ times, but not in the 6 months before your export.</p>
-        <div class="list" data-out></div>
-      </article>
-      <article class="card" data-q="most_skipped">
-        <h2>Most Skipped</h2>
-        <p class="note">Skips ÷ (plays + skips), for songs with at least 15 of either.</p>
-        <div class="list" data-out></div>
-      </article>
-      <article class="card wide" data-q="added_by_month">
-        <h2>Added to Library</h2>
-        <p class="note">The last 24 months of your library, by each song's date added.</p>
-        <div data-out></div>
-      </article>
-    </section>
-
-    <section class="card wide" aria-labelledby="pg">
-      <h2 id="pg">Ask Your Library in SQL</h2>
-      <p class="note">This runs against the same database the cards use. Pick an example or write your own, then press Run (or Ctrl/⌘ + Enter).</p>
-      <div class="chips" id="chips"></div>
-      <label for="sql" class="field-label">Query</label>
-      <textarea id="sql" spellcheck="false"></textarea>
-      <div class="runbar">
-        <button class="btn" id="run" type="button">Run query</button>
-        <span class="run-msg" id="run-msg"></span>
-      </div>
-      <div class="tablewrap" id="run-out"></div>
-      <details class="sql">
-        <summary>Tables you can query →</summary>
-        <div class="schema" id="schema"></div>
-      </details>
-    </section>
+  <div class="cols-2">
+    <article class="panel" id="songs" data-q="top_songs">
+      <div class="panel-head"><h2>Top Songs</h2><span class="hint">Lifetime plays</span></div>
+      <div class="list" data-out></div>
+    </article>
+    <article class="panel" id="artists" data-q="top_artists">
+      <div class="panel-head"><h2>Top Artists</h2><span class="hint">Hours played</span></div>
+      <div class="artists" data-out></div>
+    </article>
   </div>
 
-  <footer>Tracklog builds a SQLite database with sql.js and runs every card as a SQL query. Open "Show SQL" on any card to see how it was calculated.</footer>
-</div>
+  <article class="panel" id="playlists" data-q="playlists">
+    <div class="panel-head"><h2>Your Playlists</h2><span class="hint">Cover from each playlist's most-played song</span></div>
+    <div class="playlists" data-out></div>
+  </article>
+
+  <div class="cols-2">
+    <div class="stack">
+      <article class="panel" id="genres" data-q="genres">
+        <div class="panel-head"><h2>Top Genres</h2><span class="hint">Hours played</span></div>
+        <div class="chips" data-out></div>
+      </article>
+      <article class="panel" id="forgotten" data-q="forgotten">
+        <div class="panel-head"><h2>Forgotten Favourites</h2><span class="hint">30+ plays, none in 6 months</span></div>
+        <div class="list" data-out></div>
+      </article>
+    </div>
+    <article class="panel" id="skipped" data-q="most_skipped">
+      <div class="panel-head"><h2>Most Skipped</h2><span class="hint">Skips ÷ (plays + skips)</span></div>
+      <div class="list" data-out></div>
+    </article>
+  </div>
+
+  <article class="panel" id="added" data-q="added_by_month">
+    <div class="panel-head"><h2>Added to Library</h2><span class="hint">Last 24 months</span></div>
+    <div data-out></div>
+  </article>
+
+  <section class="panel console" id="console" aria-labelledby="pg">
+    <div class="panel-head"><h2 id="pg">Ask Your Library in SQL</h2><span class="hint">Ctrl/⌘ + Enter to run</span></div>
+    <p class="fine">This runs against the same database the cards use. Pick an example or write your own.</p>
+    <div class="chips" id="chips"></div>
+    <p class="explain" id="explain" hidden></p>
+    <label for="sql" class="field-label">Query</label>
+    <textarea id="sql" spellcheck="false"></textarea>
+    <div class="runbar">
+      <button class="btn" id="run" type="button">Run query</button>
+      <span class="run-msg" id="run-msg"></span>
+    </div>
+    <div class="tablewrap" id="run-out"></div>
+    <details class="sql">
+      <summary>Tables you can query →</summary>
+      <div class="schema" id="schema"></div>
+    </details>
+  </section>
+
+  <p class="fine">Tracklog builds a SQLite database in your browser and runs every card as a SQL query. Your file never leaves this page. Cover art is looked up by song and artist name with Apple's public iTunes Search.</p>
+</main>
+
+<dialog id="help">
+  <h2>Get your library file</h2>
+  <div class="os-tabs" role="tablist" aria-label="Your computer">
+    <button role="tab" id="tab-mac" aria-selected="true" aria-controls="steps-mac">Mac</button>
+    <button role="tab" id="tab-win" aria-selected="false" aria-controls="steps-win">Windows</button>
+  </div>
+  <ol class="steps" id="steps-mac" role="tabpanel" aria-labelledby="tab-mac">
+    <li><span>Open the <b>Music</b> app on your Mac.</span></li>
+    <li><span>Choose File → Library → Export Library… in the menu bar.</span></li>
+    <li><span>Save it. You'll get a file called Library.xml.</span></li>
+    <li><span>Click <b>Upload Library.xml</b>, or drag the file anywhere onto this page.</span></li>
+  </ol>
+  <ol class="steps" id="steps-win" role="tabpanel" aria-labelledby="tab-win" hidden>
+    <li><span>Open <b>iTunes</b> on your PC.</span></li>
+    <li><span>Choose File → Library → Export Library… (press Alt if the menu bar is hidden).</span></li>
+    <li><span>Save it as XML. You'll get a file like Library.xml.</span></li>
+    <li><span>Click <b>Upload Library.xml</b>, or drag the file anywhere onto this page.</span></li>
+  </ol>
+  <p class="fine">Play counts include your iPhone's plays when Sync Library is turned on. The export needs a computer; the iPhone app can't make one.</p>
+  <div class="dialog-actions">
+    <button class="btn ghost" id="close-help" type="button">Close</button>
+    <label class="btn" for="file">Choose file</label>
+  </div>
+</dialog>
+
+<div class="drop-overlay" id="drop-overlay" hidden>Drop Library.xml to analyze it</div>
 
 <!-- SQLite compiled to JavaScript (sql.js) -->
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/sql-asm-memory-growth.js"></script>
