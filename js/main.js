@@ -2,13 +2,14 @@
 // runs each card's query, and handles uploads and the SQL editor.
 
 import { loadSqlFiles, parseLibrary, buildDatabase, runQuery } from "./database.js";
-import { nf, pct, fmtDate, el, renderBars, renderTable, renderMonths, addSqlToggle } from "./render.js";
+import { nf, pct, fmtDate, el, renderBars, renderSongList, renderTable, twoLine, renderMonths, addSqlToggle } from "./render.js";
+import { artEnabled, setArtEnabled, cancelPending } from "./artwork.js";
 import { sampleLibrary } from "./sample-library.js";
 
 const $ = (id) => document.getElementById(id);
 const SAMPLE_NOTE = "Invented artists and play counts. Upload your own Library.xml to see yours.";
 
-const state = { SQL: null, sql: null, db: null, exportDate: null };
+const state = { SQL: null, sql: null, db: null, exportDate: null, kind: "sample" };
 const params = () => ({ ":export_date": state.exportDate });
 const query = (sql, p) => runQuery(state.db, sql, p);
 
@@ -41,26 +42,27 @@ function renderAll() {
       return;
     }
     results[key] = rows;
-    const plays = { key: "plays", label: "Plays", num: true, fmt: (v) => nf.format(v) };
+    // Real cover art only for real libraries; the sample's artists are invented.
+    const art = state.kind === "user" && artEnabled();
     switch (key) {
-      case "top_artists": renderBars(out, rows, "artist", "hours", "hours", true); break;
+      case "top_artists": renderBars(out, rows, "artist", "hours", "hours", { avatars: true, art }); break;
       case "genres": renderBars(out, rows, "genre", "hours", "hours"); break;
       case "top_songs":
-        renderTable(out, rows, [{ key: "rank", label: "", rank: true }, { key: "title", label: "Song", song: true }, plays]);
+        renderSongList(out, rows, { ranked: true, art, value: (r) => [nf.format(r.plays)] });
         break;
       case "playlists":
         renderTable(out, rows, [
           { key: "playlist", label: "Playlist" },
-          { key: "top_song", label: "Most played", hideSm: true },
-          { key: "songs", label: "Songs", num: true, hideSm: true, fmt: (v) => nf.format(v) },
-          plays,
+          { key: "top_title", label: "Most played", render: (r) => twoLine(r.top_title, r.top_artist) },
+          { key: "songs", label: "Songs", num: true, muted: true, hideSm: true, fmt: (v) => nf.format(v) },
+          { key: "plays", label: "Plays", num: true, fmt: (v) => nf.format(v) },
         ]);
         break;
       case "forgotten":
-        renderTable(out, rows, [{ key: "title", label: "Song", song: true }, plays, { key: "last_played", label: "Last played", num: true, fmt: fmtDate }]);
+        renderSongList(out, rows, { art, value: (r) => [`${nf.format(r.plays)} plays`, `last ${fmtDate(r.last_played)}`] });
         break;
       case "most_skipped":
-        renderTable(out, rows, [{ key: "title", label: "Song", song: true }, { key: "skip_rate", label: "Skip rate", num: true, fmt: pct }]);
+        renderSongList(out, rows, { art, value: (r) => [pct(r.skip_rate)] });
         break;
       case "added_by_month": renderMonths(out, rows, state.exportDate); break;
     }
@@ -138,7 +140,7 @@ function runUserQuery() {
 function setSource(kind, label) {
   const pill = $("source-pill");
   pill.textContent = kind === "sample" ? "Sample library" : "Your library";
-  pill.className = "pill" + (kind === "sample" ? " sample" : "");
+  pill.className = "pill" + (kind === "sample" ? "" : " mine");
   $("msg").textContent = label;
   $("msg").className = "msg";
   $("load-sample").hidden = kind === "sample";
@@ -147,7 +149,9 @@ function setSource(kind, label) {
 function loadLibrary(lib, kind, label) {
   const next = buildDatabase(state.SQL, state.sql.schema, lib);
   if (state.db) state.db.close();
+  cancelPending();
   state.db = next;
+  state.kind = kind;
   state.exportDate = (lib.Date || new Date().toISOString()).slice(0, 10);
   renderAll();
   setSource(kind, label);
@@ -193,6 +197,12 @@ document.addEventListener("drop", (e) => {
 
 $("load-sample").addEventListener("click", () => loadLibrary(sampleLibrary(), "sample", SAMPLE_NOTE));
 $("run").addEventListener("click", runUserQuery);
+$("art-toggle").checked = artEnabled();
+$("art-toggle").addEventListener("change", (e) => {
+  setArtEnabled(e.target.checked);
+  if (!e.target.checked) cancelPending();
+  if (state.db) renderAll();
+});
 $("sql").addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runUserQuery(); }
 });

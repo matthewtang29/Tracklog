@@ -17,6 +17,10 @@ Library.xml ──► parse (database.js) ──► SQLite in the browser ──
 
 Your file never leaves your computer. SQLite runs in the browser through [sql.js](https://github.com/sql-js/sql.js), so there is no server.
 
+### Cover art
+
+`Library.xml` contains no images, so `js/artwork.js` looks up each song (and each top artist) by name with Apple's public [iTunes Search API](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/) and shows the album artwork it returns. Lookups run one at a time to stay under the API's rate limit, results are cached in the browser, and anything not found keeps a plain placeholder. Only song and artist names are sent; you can turn cover art off on the page.
+
 ## Project structure
 
 ```
@@ -26,7 +30,8 @@ tracklog/
 ├── js/
 │   ├── main.js              starts the app, draws each card, runs the SQL editor
 │   ├── database.js          loads the .sql files, parses Library.xml, builds SQLite
-│   ├── render.js            bar charts, tables, the monthly chart
+│   ├── render.js            bar charts, song lists, tables, the monthly chart
+│   ├── artwork.js           finds album covers with the iTunes Search API
 │   └── sample-library.js    invented demo library shown before you upload
 └── sql/
     ├── schema.sql           tables: artists, albums, tracks, playlists, playlist_tracks + v_tracks view

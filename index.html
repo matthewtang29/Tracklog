@@ -5,62 +5,76 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Tracklog</title>
   <meta name="description" content="Turn your Apple Music library into a SQL database and see your listening habits. Runs entirely in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 <div class="wrap">
-  <header class="brand">
-    <h1><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="12" cy="12" r="9" opacity=".35"/><circle cx="12" cy="12" r="6" opacity=".55"/><circle cx="12" cy="12" r="2.2" fill="#fff" stroke="none"/></svg></span>Tracklog</h1>
-    <p class="tag">Your Apple Music library, turned into a SQL database.</p>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
+      </span>
+      <div>
+        <h1>Tracklog</h1>
+        <p>Your Apple Music library, turned into a SQL database.</p>
+      </div>
+    </div>
+    <div class="source" aria-live="polite">
+      <span id="source-pill" class="pill">Sample library</span>
+      <span id="msg" class="msg">Loading the database engine…</span>
+    </div>
   </header>
 
   <section class="intro">
-    <div class="panel" aria-labelledby="how">
-      <h2 id="how">Get your library file</h2>
-      <div class="os-tabs" role="tablist" aria-label="Your computer">
-        <button role="tab" id="tab-mac" aria-selected="true" aria-controls="steps-mac">Mac</button>
-        <button role="tab" id="tab-win" aria-selected="false" aria-controls="steps-win">Windows</button>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Get your library file</h2>
+        <div class="os-tabs" role="tablist" aria-label="Your computer">
+          <button role="tab" id="tab-mac" aria-selected="true" aria-controls="steps-mac">Mac</button>
+          <button role="tab" id="tab-win" aria-selected="false" aria-controls="steps-win">Windows</button>
+        </div>
       </div>
       <ol class="steps" id="steps-mac" role="tabpanel" aria-labelledby="tab-mac">
         <li><span>Open the <b>Music</b> app on your Mac.</span></li>
-        <li><span>Choose <span class="menu">File → Library → Export Library…</span> in the menu bar.</span></li>
-        <li><span>Save it. You'll get a file called <span class="menu">Library.xml</span>.</span></li>
-        <li><span>Drop that file in the box here.</span></li>
+        <li><span>Choose File → Library → Export Library… in the menu bar.</span></li>
+        <li><span>Save it. You'll get a file called Library.xml.</span></li>
+        <li><span>Drop that file in the box.</span></li>
       </ol>
       <ol class="steps" id="steps-win" role="tabpanel" aria-labelledby="tab-win" hidden>
         <li><span>Open <b>iTunes</b> on your PC.</span></li>
-        <li><span>Choose <span class="menu">File → Library → Export Library…</span> (press <span class="menu">Alt</span> if the menu bar is hidden).</span></li>
-        <li><span>Save it as XML. You'll get a file like <span class="menu">Library.xml</span>.</span></li>
-        <li><span>Drop that file in the box here.</span></li>
+        <li><span>Choose File → Library → Export Library… (press Alt if the menu bar is hidden).</span></li>
+        <li><span>Save it as XML. You'll get a file like Library.xml.</span></li>
+        <li><span>Drop that file in the box.</span></li>
       </ol>
-      <p class="fine">Play counts include your iPhone's plays when <b>Sync Library</b> is turned on. The export needs a computer; the iPhone app can't make one.</p>
+      <p class="fine">Play counts include your iPhone's plays when Sync Library is turned on. The export needs a computer; the iPhone app can't make one.</p>
     </div>
 
     <div class="panel">
       <h2>Analyze it</h2>
       <label class="drop" id="drop" for="file">
         <input type="file" id="file" accept=".xml,text/xml,application/xml">
-        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--accent)"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="2.5"></circle><path d="M12 3a9 9 0 0 1 9 9" opacity=".5"></path></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="m7 9 5-5 5 5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
         <strong>Drop Library.xml here</strong>
-        <span class="fine">or click to choose the file</span>
+        <span>or click to choose the file</span>
       </label>
-      <div class="runbar">
-        <button class="btn ghost" id="load-sample" type="button">Load the sample library again</button>
+      <div class="row-actions">
+        <label class="toggle"><input type="checkbox" id="art-toggle" checked> Show cover art</label>
+        <button class="link-btn" id="load-sample" type="button" hidden>Load the sample library again</button>
       </div>
       <p class="lock">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
-        <span>Your file never leaves this page. A SQLite database is built and queried right here in your browser.</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span>Your file never leaves this page. A SQLite database is built and queried right here in your browser. Cover art is looked up by song and artist name with Apple's public iTunes Search; turn it off to skip that.</span>
       </p>
     </div>
   </section>
 
-  <section class="status" aria-live="polite">
-    <span id="source-pill" class="pill sample">Sample library</span>
-    <span id="msg" class="msg">Loading the database engine…</span>
-  </section>
-
-  <div id="results" class="loading" style="display:grid; gap:24px;">
-    <section class="hero"><span class="eyebrow">Your listening, by the numbers</span><p class="takeaway" id="takeaway">&nbsp;</p></section>
+  <div id="results" class="loading" style="display:grid; gap:20px;">
+    <section class="hero">
+      <span class="eyebrow">Your listening, by the numbers</span>
+      <p class="takeaway" id="takeaway">&nbsp;</p>
+    </section>
 
     <section class="tiles" aria-label="Totals">
       <div class="tile"><span>Total plays</span><strong id="t-plays">—</strong></div>
@@ -73,56 +87,56 @@
 
     <section class="grid">
       <article class="card" data-q="top_artists">
-        <h3>Top Artists</h3>
+        <h2>Top Artists</h2>
         <p class="note">By hours listened: play count × song length.</p>
         <div class="bars" data-out></div>
       </article>
       <article class="card" data-q="top_songs">
-        <h3>Top Songs</h3>
+        <h2>Top Songs</h2>
         <p class="note">Lifetime play count.</p>
-        <div class="tablewrap" data-out></div>
+        <div class="list" data-out></div>
       </article>
       <article class="card" data-q="playlists">
-        <h3>Your Playlists</h3>
+        <h2>Your Playlists</h2>
         <p class="note">Total plays across each playlist's songs, and its most-played song.</p>
         <div class="tablewrap" data-out></div>
       </article>
       <article class="card" data-q="genres">
-        <h3>Top Genres</h3>
+        <h2>Top Genres</h2>
         <p class="note">Apple's genre tag on each song.</p>
         <div class="bars" data-out></div>
       </article>
       <article class="card" data-q="forgotten">
-        <h3>Forgotten Favourites</h3>
+        <h2>Forgotten Favourites</h2>
         <p class="note">Played 30+ times, but not in the 6 months before your export.</p>
-        <div class="tablewrap" data-out></div>
+        <div class="list" data-out></div>
       </article>
       <article class="card" data-q="most_skipped">
-        <h3>Most Skipped</h3>
+        <h2>Most Skipped</h2>
         <p class="note">Skips ÷ (plays + skips), for songs with at least 15 of either.</p>
-        <div class="tablewrap" data-out></div>
+        <div class="list" data-out></div>
       </article>
       <article class="card wide" data-q="added_by_month">
-        <h3>Added to Library</h3>
+        <h2>Added to Library</h2>
         <p class="note">The last 24 months of your library, by each song's date added.</p>
         <div data-out></div>
       </article>
     </section>
 
-    <section class="card wide play" aria-labelledby="pg">
-      <h3 id="pg">Ask Your Library in SQL</h3>
+    <section class="card wide" aria-labelledby="pg">
+      <h2 id="pg">Ask Your Library in SQL</h2>
       <p class="note">This runs against the same database the cards use. Pick an example or write your own, then press Run (or Ctrl/⌘ + Enter).</p>
       <div class="chips" id="chips"></div>
-      <label for="sql" class="fine">Query</label>
+      <label for="sql" class="field-label">Query</label>
       <textarea id="sql" spellcheck="false"></textarea>
       <div class="runbar">
         <button class="btn" id="run" type="button">Run query</button>
-        <span class="msg" id="run-msg"></span>
+        <span class="run-msg" id="run-msg"></span>
       </div>
       <div class="tablewrap" id="run-out"></div>
       <details class="sql">
-        <summary>Tables you can query</summary>
-        <div class="schema" id="schema" style="margin-top:8px"></div>
+        <summary>Tables you can query →</summary>
+        <div class="schema" id="schema"></div>
       </details>
     </section>
   </div>

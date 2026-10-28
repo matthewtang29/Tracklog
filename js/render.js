@@ -1,4 +1,6 @@
-// render.js: turns query results into bars, tables and the monthly chart.
+// render.js: turns query results into bars, song lists, tables and the monthly chart.
+
+import { attachArtwork } from "./artwork.js";
 
 export const nf = new Intl.NumberFormat("en");
 
@@ -17,26 +19,28 @@ export function el(tag, cls, text) {
   return e;
 }
 
-/* Generated "album art": a gradient picked from a hash of the text. */
+/* Placeholder tile: a quiet, low-saturation colour picked from the name,
+   replaced by real cover art when artwork.js finds it. */
 function hashHue(str) {
   let h = 0;
   for (const ch of String(str)) h = (h * 31 + ch.codePointAt(0)) >>> 0;
   return h % 360;
 }
 
-function artwork(seed, cls, letter) {
-  const h = hashHue(seed);
-  const a = el("span", "art" + (cls ? " " + cls : ""), letter || null);
-  a.style.background = `linear-gradient(140deg, hsl(${h} 72% 58%), hsl(${(h + 48) % 360} 66% 34%))`;
-  a.setAttribute("aria-hidden", "true");
-  return a;
-}
-
 const initials = (name) =>
   String(name).replace(/[^\p{L}\p{N} ]/gu, "").split(/\s+/).filter(Boolean)
     .slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "♪";
 
-export function renderBars(out, rows, labelKey, valKey, unit, avatars) {
+function tile({ kind, title, artist, avatar, art }) {
+  const seed = avatar ? artist : `${artist}${title}`;
+  const t = el("span", "art" + (avatar ? " avatar" : ""), avatar ? initials(artist) : null);
+  t.style.background = `hsl(${hashHue(seed)} 12% 22%)`;
+  t.setAttribute("aria-hidden", "true");
+  if (art) attachArtwork(t, kind, title, artist);
+  return t;
+}
+
+export function renderBars(out, rows, labelKey, valKey, unit, opts = {}) {
   out.replaceChildren();
   if (!rows.length) { out.append(el("p", "empty", "Nothing to show for this library.")); return; }
   const max = Math.max(...rows.map((r) => r[valKey]));
@@ -44,7 +48,7 @@ export function renderBars(out, rows, labelKey, valKey, unit, avatars) {
     const row = el("div", "bar-row");
     const lab = el("span", "lab");
     lab.title = r[labelKey];
-    if (avatars) lab.append(artwork(r[labelKey], "avatar", initials(r[labelKey])));
+    if (opts.avatars) lab.append(tile({ kind: "artist", artist: r[labelKey], avatar: true, art: opts.art }));
     lab.append(el("span", null, r[labelKey]));
     const track = el("div", "bar-track");
     const fill = el("div", "bar-fill");
@@ -57,33 +61,43 @@ export function renderBars(out, rows, labelKey, valKey, unit, avatars) {
   });
 }
 
+/** Song rows with cover art: [rank] [art] title/artist [value]. */
+export function renderSongList(out, rows, { ranked = false, art = false, value }) {
+  out.replaceChildren();
+  if (!rows.length) { out.append(el("p", "empty", "Nothing matches in this library.")); return; }
+  rows.forEach((r, i) => {
+    const item = el("div", "item" + (ranked ? "" : " no-rank"));
+    if (ranked) item.append(el("span", "rank", String(i + 1)));
+    item.append(tile({ kind: "song", title: r.title, artist: r.artist, art }));
+    const who = el("span", "who");
+    who.append(el("b", null, r.title), el("span", null, r.artist));
+    who.title = `${r.title} – ${r.artist}`;
+    const num = el("span", "num");
+    const [main, sub] = value(r);
+    num.append(main);
+    if (sub) num.append(el("small", null, sub));
+    item.append(who, num);
+    out.append(item);
+  });
+}
+
 export function renderTable(out, rows, cols) {
   out.replaceChildren();
   if (!rows.length) { out.append(el("p", "empty", "Nothing matches in this library.")); return; }
   const table = el("table");
   const thead = el("thead");
   const headRow = el("tr");
-  cols.forEach((c) => headRow.append(el("th", (c.num ? "num " : "") + (c.hideSm ? "hide-sm" : ""), c.label)));
+  cols.forEach((c) => headRow.append(el("th", [c.num && "num", c.hideSm && "hide-sm"].filter(Boolean).join(" "), c.label)));
   thead.append(headRow);
   table.append(thead);
 
   const tbody = el("tbody");
-  rows.forEach((r, i) => {
+  rows.forEach((r) => {
     const tr = el("tr");
     cols.forEach((c) => {
-      const td = el("td", (c.num ? "num " : "") + (c.hideSm ? "hide-sm" : ""));
-      if (c.rank) {
-        td.className = "rank";
-        td.textContent = String(i + 1);
-      } else if (c.song) {
-        const wrap = el("div", "song");
-        const text = el("span");
-        text.append(el("span", null, r.title), el("span", "sub", r.artist));
-        wrap.append(artwork((r.album || "") + r.artist + r.title), text);
-        td.append(wrap);
-      } else {
-        td.textContent = c.fmt ? c.fmt(r[c.key]) : (r[c.key] ?? "—");
-      }
+      const td = el("td", [c.num && "num", c.muted && "muted", c.hideSm && "hide-sm"].filter(Boolean).join(" "));
+      if (c.render) td.append(c.render(r));
+      else td.textContent = c.fmt ? c.fmt(r[c.key]) : (r[c.key] ?? "—");
       tr.append(td);
     });
     tbody.append(tr);
@@ -92,9 +106,15 @@ export function renderTable(out, rows, cols) {
   out.append(table);
 }
 
+export function twoLine(top, bottom) {
+  const d = el("div", "two");
+  d.append(el("b", null, top ?? "—"), el("span", null, bottom ?? ""));
+  return d;
+}
+
 export function renderMonths(out, rows, exportDate) {
   out.replaceChildren();
-  if (!rows.length) { out.append(el("p", "empty", "No dates added in the last 24 months.")); return; }
+  if (!rows.length) { out.append(el("p", "empty", "No songs added in the last 24 months.")); return; }
 
   // Fill gaps so every month appears, even with zero songs added.
   const byMonth = new Map(rows.map((r) => [r.month, r.added]));
@@ -109,18 +129,17 @@ export function renderMonths(out, rows, exportDate) {
     if (m > 12) { m = 1; y++; }
   }
 
-  const max = Math.max(...months.map((k) => byMonth.get(k) || 0), 1);
+  const values = months.map((k) => byMonth.get(k) || 0);
+  const max = Math.max(...values, 1);
+  const peak = values.indexOf(max);
+  const label = (k, style) => new Date(k + "-01T00:00:00Z").toLocaleDateString("en", { month: style, year: style === "long" ? "numeric" : undefined, timeZone: "UTC" });
   const cols = el("div", "cols");
-  const labels = el("div", "col-labels");
-  const short = (k) => new Date(k + "-01T00:00:00Z").toLocaleDateString("en", { month: "short", timeZone: "UTC" });
-  const step = Math.ceil(months.length / Math.max(4, Math.floor(out.clientWidth / 52) || 8));
 
   months.forEach((k, i) => {
-    const v = byMonth.get(k) || 0;
-    const full = new Date(k + "-01T00:00:00Z").toLocaleDateString("en", { month: "long", year: "numeric", timeZone: "UTC" });
-    const col = el("div", "col");
+    const v = values[i];
+    const col = el("div", "col" + (i === peak ? " peak" : ""));
     col.tabIndex = 0;
-    col.title = `${full}: ${v} songs added`;
+    col.title = `${label(k, "long")}: ${v} songs added`;
     col.setAttribute("aria-label", col.title);
     const h = (v ? Math.max(2, 100 * v / max) : 0) + "%";
     const bar = el("i");
@@ -129,10 +148,15 @@ export function renderMonths(out, rows, exportDate) {
     num.style.bottom = h;
     col.append(num, bar);
     cols.append(col);
+  });
 
-    const isJan = k.endsWith("-01");
-    const text = (i % step === 0 || isJan) ? (isJan || i === 0 ? `${short(k)} ${k.slice(2, 4)}` : short(k)) : "";
-    labels.append(el("span", null, text));
+  // Five evenly spaced labels, like "Nov '24 … Oct '26"
+  const labels = el("div", "col-labels");
+  const n = months.length;
+  const picks = [...new Set([0, Math.round(n * 0.25), Math.round(n * 0.5), Math.round(n * 0.75), n - 1])].filter((i) => i < n);
+  picks.forEach((i) => {
+    const k = months[i];
+    labels.append(el("span", null, `${label(k, "short")} '${k.slice(2, 4)}`));
   });
   out.append(cols, labels);
 }
@@ -141,7 +165,7 @@ export function addSqlToggle(card, sql) {
   let details = card.querySelector("details.sql");
   if (!details) {
     details = el("details", "sql");
-    details.append(el("summary", null, "Show SQL"), el("pre"));
+    details.append(el("summary", null, "Show SQL →"), el("pre"));
     card.append(details);
   }
   details.querySelector("pre").textContent = sql;
