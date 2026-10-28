@@ -8,6 +8,7 @@ import { sampleLibrary, sampleCover } from "./sample-library.js";
 
 const $ = (id) => document.getElementById(id);
 const SAMPLE_NOTE = "Real songs, invented play counts. Upload yours to see your own.";
+const MAX_FILE_MB = 500; // bigger than any real library export; stops a wrong file from freezing the tab
 
 const state = { SQL: null, sql: null, db: null, exportDate: null, kind: "sample" };
 const params = () => ({ ":export_date": state.exportDate });
@@ -158,6 +159,10 @@ function setSource(kind, label) {
   $("source-title").textContent = kind === "sample" ? "Sample library" : "Your library";
   setMessage(label);
   $("load-sample").hidden = kind === "sample";
+  $("intro-note").textContent = kind === "sample"
+    ? "You're looking at a sample library. Upload your own Library.xml to see your stats. The file never leaves your computer."
+    : "You're looking at your own library. It stays on this page and is gone when you close it.";
+  $("cta-main").textContent = kind === "sample" ? "Upload Library.xml" : "Upload a different file";
 }
 
 function loadLibrary(lib, kind, label) {
@@ -175,6 +180,9 @@ function loadLibrary(lib, kind, label) {
 async function handleFile(file) {
   if (!file) return;
   if (!state.db) { setMessage("Still loading the database engine. Try again in a moment."); return; }
+  const fail = (text) => { setMessage(text, true); $("msg").scrollIntoView({ block: "center", behavior: "smooth" }); };
+  if (!/\.xml$/i.test(file.name)) return fail(`${file.name} isn't an XML file. Upload the Library.xml you exported from Music or iTunes.`);
+  if (file.size > MAX_FILE_MB * 1024 * 1024) return fail(`${file.name} is over ${MAX_FILE_MB} MB, which is too big to be a library export.`);
   if ($("help").open) $("help").close();
   setMessage(`Reading ${file.name}…`);
   $("results").classList.add("loading");
@@ -185,7 +193,7 @@ async function handleFile(file) {
     window.scrollTo({ top: 0 });
   } catch (e) {
     $("results").classList.remove("loading");
-    setMessage(e.message, true);
+    fail(e.message);
   }
 }
 
@@ -210,7 +218,7 @@ tabs.forEach(([tab]) => $(tab).addEventListener("click", () => tabs.forEach(([t,
   $(panel).hidden = !on;
 })));
 if (/Win/i.test(navigator.platform || navigator.userAgent)) $("tab-win").click();
-$("open-help").addEventListener("click", () => $("help").showModal());
+document.querySelectorAll("[data-help]").forEach((b) => b.addEventListener("click", () => $("help").showModal()));
 $("close-help").addEventListener("click", () => $("help").close());
 
 // Upload: button, or drop a file anywhere on the page
@@ -248,6 +256,15 @@ const observer = new IntersectionObserver((entries) => {
   navLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + visible.target.id));
 }, { rootMargin: "0px 0px -65% 0px" });
 sections.forEach((s) => observer.observe(s));
+
+// Phones: keep an upload button on screen once the top ones have scrolled away
+const topCtas = [document.querySelector(".side-card"), document.querySelector(".intro")];
+const onScreen = new Set();
+const ctaObserver = new IntersectionObserver((entries) => {
+  entries.forEach((e) => e.isIntersecting ? onScreen.add(e.target) : onScreen.delete(e.target));
+  $("sticky-cta").hidden = onScreen.size > 0;
+});
+topCtas.forEach((t) => ctaObserver.observe(t));
 
 /* ---------- Start up ---------- */
 

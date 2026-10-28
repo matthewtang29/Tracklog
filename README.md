@@ -2,7 +2,7 @@
 
 Turn your Apple Music library into a SQL database and see your listening habits: top artists, forgotten favourites, most-skipped songs, and more. Runs entirely in your browser.
 
-**[Try it live](https://matthewtang29.github.io/tracklog/)**
+**[Try it live](https://matthewtang29.github.io/Tracklog/)**
 
 ## How it works
 
@@ -32,6 +32,10 @@ Every album cover seen in any search is remembered, so other songs from that alb
 ```
 tracklog/
 ├── index.html               page layout
+├── 404.html                 "page not found" (GitHub Pages serves it for any missing URL)
+├── privacy.html, terms.html
+├── sitemap.xml, site.webmanifest, favicon.ico
+├── img/                     icons and the link-preview image (og-image.png)
 ├── css/styles.css           styling
 ├── js/
 │   ├── main.js              starts the app, draws each card, runs the SQL editor
