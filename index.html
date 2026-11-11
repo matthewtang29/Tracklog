@@ -3,8 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Tracklog</title>
+  <title>Tracklog: your Apple Music library as a SQL database</title>
   <meta name="description" content="Turn your Apple Music library into a SQL database and see your listening habits. Runs entirely in your browser.">
+  <!-- GitHub Pages can't send security headers, so the content policy lives here. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://itunes.apple.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.mzstatic.com; connect-src 'self' https://itunes.apple.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="canonical" href="https://matthewtang29.github.io/Tracklog/">
+  <meta name="theme-color" content="#0f1113">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tracklog">
+  <meta property="og:title" content="Tracklog: your Apple Music library as a SQL database">
+  <meta property="og:description" content="Upload your Library.xml and see your top songs, artists and forgotten favourites, all from SQL queries that run in your browser.">
+  <meta property="og:url" content="https://matthewtang29.github.io/Tracklog/">
+  <meta property="og:image" content="https://matthewtang29.github.io/Tracklog/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Tracklog dashboard: hours listened, top songs and top artists">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="favicon.ico" sizes="32x32">
+  <link rel="icon" href="img/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="css/styles.css">
@@ -37,7 +58,7 @@
     </div>
     <label class="btn small" for="file">Upload Library.xml</label>
     <input type="file" id="file" accept=".xml,text/xml,application/xml" hidden>
-    <button class="link-btn" id="open-help" type="button">How do I get this file?</button>
+    <button class="link-btn" id="open-help" type="button" data-help>How do I get this file?</button>
     <button class="link-btn" id="load-sample" type="button" hidden>Back to the sample library</button>
     <label class="toggle"><input type="checkbox" id="art-toggle" checked> Show cover art</label>
     <p id="art-progress" hidden></p>
@@ -45,6 +66,19 @@
 </aside>
 
 <main class="main loading" id="results">
+  <noscript><p class="notice">Tracklog runs in your browser and needs JavaScript turned on.</p></noscript>
+
+  <section class="intro">
+    <div>
+      <h1>See your Apple Music library as a SQL database</h1>
+      <p id="intro-note">You're looking at a sample library. Upload your own Library.xml to see your stats. The file never leaves your computer.</p>
+    </div>
+    <div class="intro-cta">
+      <label class="btn" for="file" id="cta-main">Upload Library.xml</label>
+      <button class="link-btn" type="button" data-help>How do I get this file?</button>
+    </div>
+  </section>
+
   <section class="hero" id="overview">
     <span class="eyebrow">Your listening, by the numbers</span>
     <div class="hero-line">
@@ -119,7 +153,21 @@
   </section>
 
   <p class="fine">Tracklog builds a SQLite database in your browser and runs every card as a SQL query. Your file never leaves this page. Cover art is looked up by song and artist name with Apple's public iTunes Search.</p>
+
+  <footer class="footer">
+    <span>Tracklog by Matthew Tang · Not affiliated with Apple.</span>
+    <nav aria-label="Site">
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="https://github.com/matthewtang29/Tracklog">Source code</a>
+      <a href="https://github.com/matthewtang29/Tracklog/issues">Contact / report a problem</a>
+    </nav>
+  </footer>
 </main>
+
+<div class="sticky-cta" id="sticky-cta" hidden>
+  <label class="btn" for="file">Upload your Library.xml</label>
+</div>
 
 <dialog id="help">
   <h2>Get your library file</h2>
@@ -149,7 +197,8 @@
 <div class="drop-overlay" id="drop-overlay" hidden>Drop Library.xml to analyze it</div>
 
 <!-- SQLite compiled to JavaScript (sql.js) -->
-<script src="https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/sql-asm-memory-growth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/sql-asm-memory-growth.js"
+        integrity="sha384-3Dv2K3/fpQ1Rvr95pBp85OTf/NcF3UHhlE3ZH2bdFHjqm27WViOvBZHOGbDFwamK" crossorigin="anonymous"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
