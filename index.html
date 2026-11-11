@@ -6,7 +6,7 @@
   <title>Tracklog: your Apple Music library as a SQL database</title>
   <meta name="description" content="Turn your Apple Music library into a SQL database and see your listening habits. Runs entirely in your browser.">
   <!-- GitHub Pages can't send security headers, so the content policy lives here. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https://*.mzstatic.com; connect-src 'self' https://itunes.apple.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://itunes.apple.com; worker-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https://*.mzstatic.com; connect-src 'self' https://itunes.apple.com; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="canonical" href="https://matthewtang29.github.io/Tracklog/">
   <meta name="theme-color" content="#0f1113">
@@ -59,13 +59,6 @@
     <input type="file" id="file" accept=".xml,text/xml,application/xml" hidden>
     <button class="link-btn" id="open-help" type="button" data-help>How do I get this file?</button>
     <button class="link-btn" id="load-sample" type="button" hidden>Back to the sample library</button>
-    <div class="art-ask" id="art-ask" hidden>
-      <p>Show album covers? Tracklog would send the title and artist of songs on screen to Apple's iTunes Search to find them.</p>
-      <div class="art-ask-actions">
-        <button class="btn quiet small" type="button" id="art-yes">Find covers</button>
-        <button class="link-btn" type="button" id="art-no">No thanks</button>
-      </div>
-    </div>
     <label class="toggle"><input type="checkbox" id="art-toggle" checked> Show cover art</label>
     <p id="art-progress" hidden></p>
     <button class="link-btn" type="button" id="clear-data">Clear saved covers &amp; settings</button>
@@ -84,6 +77,13 @@
     <div>
       <h1>See your Apple Music library as a SQL database</h1>
       <p id="intro-note">You're looking at a sample library. Upload your own Library.xml to see your stats. The file never leaves your computer.</p>
+      <div class="art-ask" id="art-ask" hidden>
+        <p><b>Show album covers?</b> Your file has no pictures in it, so Tracklog would send the title and artist of the songs on screen to Apple's iTunes Search to find them.</p>
+        <div class="art-ask-actions">
+          <button class="btn quiet small" type="button" id="art-yes">Find covers</button>
+          <button class="link-btn" type="button" id="art-no">No thanks</button>
+        </div>
+      </div>
     </div>
     <div class="intro-cta">
       <button class="btn" type="button" data-upload data-upload-label="Upload Library.xml">Upload Library.xml</button>

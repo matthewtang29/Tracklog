@@ -94,19 +94,41 @@ export function clearSavedData() {
 /* ---------- Network ---------- */
 
 class RateLimited extends Error {}
+let jsonpId = 0;
+
+/* JSONP fallback. iTunes Search doesn't always send the CORS header that lets
+   fetch() read its answer (and never does on a rate-limited reply), so when
+   fetch fails the search is retried as a <script> tag. That's why the CSP in
+   index.html allows scripts from itunes.apple.com. */
+function jsonp(url, timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    const name = `__tracklogArt${++jsonpId}`;
+    const script = document.createElement("script");
+    const timer = setTimeout(() => finish(new RateLimited("timeout")), timeoutMs);
+    function finish(err, data) {
+      clearTimeout(timer);
+      delete window[name];
+      script.remove();
+      err ? reject(err) : resolve(data);
+    }
+    window[name] = (data) => finish(null, data);
+    script.onerror = () => finish(new RateLimited("blocked"));
+    script.referrerPolicy = "no-referrer";
+    script.src = `${url}&callback=${name}`;
+    document.head.append(script);
+  });
+}
 
 async function searchSongs(term) {
   const url = `https://itunes.apple.com/search?media=music&entity=song&limit=25&term=${encodeURIComponent(term)}`;
-  let res;
+  let data;
   try {
-    res = await fetch(url, { referrerPolicy: "no-referrer", credentials: "omit" });
+    const res = await fetch(url, { referrerPolicy: "no-referrer", credentials: "omit" });
+    if (res.status === 403 || res.status === 429) throw new RateLimited(String(res.status));
+    data = await res.json();
   } catch {
-    // A rate-limited response has no CORS header, so fetch throws a TypeError.
-    throw new RateLimited("blocked");
+    data = await jsonp(url);
   }
-  if (res.status === 403 || res.status === 429) throw new RateLimited(String(res.status));
-  if (!res.ok) return [];
-  const data = await res.json().catch(() => null);
   const results = Array.isArray(data?.results) ? data.results : [];
   rememberAlbums(results);
   return results;
