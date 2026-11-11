@@ -22,24 +22,17 @@ export function el(tag, cls, text) {
 
 const empty = (out, text = "Nothing matches in this library.") => out.replaceChildren(el("p", "empty", text));
 
-/* Placeholder tile: a quiet colour picked from the name. artwork.js swaps in
-   the real cover when it finds one. */
-function hashHue(str) {
-  let h = 0;
-  for (const ch of String(str)) h = (h * 31 + ch.codePointAt(0)) >>> 0;
-  return h % 360;
-}
+/* Placeholder tile: plain neutral grey (styles.css) with initials or a note.
+   artwork.js swaps in the real cover when it finds one. */
 
 const initials = (name) =>
   String(name).replace(/[^\p{L}\p{N} ]/gu, "").split(/\s+/).filter(Boolean)
     .slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "♪";
 
 function tile({ title, artist, album, avatar, art, label }) {
-  const seed = avatar ? artist : `${artist}${title}`;
   const t = el("span", "art" + (avatar ? " avatar" : ""), label ?? (avatar ? initials(artist) : null));
-  t.style.background = `hsl(${hashHue(seed)} 10% 20%)`;
   t.setAttribute("aria-hidden", "true");
-  if (art) attachArtwork(t, { title, artist, album, url: art.coverFor?.(album, artist) });
+  if (art) attachArtwork(t, { title, artist, album, url: art.coverFor?.(album, artist), lookup: art.lookup });
   return t;
 }
 

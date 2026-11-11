@@ -1,59 +1,39 @@
 # Tracklog
 
-Turn your Apple Music library into a SQL database and see your listening habits: top artists, forgotten favourites, most-skipped songs, and more. Runs entirely in your browser.
+**Turn your Apple Music library into a SQL database and see your listening habits, all inside your browser.**
 
-**[Try it live](https://matthewtang29.github.io/Tracklog/)**
+**[Try it live →](https://matthewtang29.github.io/Tracklog/)**
 
-## How it works
+<!-- DEMO GIF: record ~10 seconds (upload Library.xml → dashboard fills in → run a query in the SQL console),
+     save it as docs/demo.gif, and change the image below to docs/demo.gif. -->
+![Tracklog dashboard showing hours listened, top songs and top artists](img/og-image.png)
 
-```
-Library.xml ──► parse (database.js) ──► SQLite in the browser ──► SQL queries (sql/) ──► charts (render.js)
-```
+## Features
 
-1. You export your library from the Music app (Mac) or iTunes (Windows).
-2. `js/database.js` reads Apple's XML format and builds a SQLite database from `sql/schema.sql`, inserting every song, artist, album and playlist.
-3. Each card on the page runs one query from `sql/queries/`.
-4. `js/render.js` turns the results into bars and tables.
+- **Your stats from your own file.** Drop in the `Library.xml` you export from the Music app or iTunes, or start with the built-in sample library.
+- **A dashboard where every card is a SQL query.** You get total hours, top songs and artists, playlists, genres, forgotten favourites, most skipped songs and songs added per month. Click "Show SQL" on any card to read the query behind it.
+- **A SQL console.** Write your own queries against your own library, or start from six example queries.
+- **Album covers.** Library exports contain no images, so covers are matched through Apple's iTunes Search with careful matching rules, caching and rate-limit backoff. This only happens if you say yes.
+- **Private by design.** There's no server and no account. Your file is read in your browser and never uploaded.
+- **Handles real-world files.** A streaming parser in a Web Worker reads a 150 MB, 250,000-song export without freezing the page. Damaged files get a clear message instead of a crash.
 
-Your file never leaves your computer. SQLite runs in the browser through [sql.js](https://github.com/sql-js/sql.js), so there is no server.
+## Tech stack
 
-### Cover art
+| Piece | What I used |
+|---|---|
+| Database | SQLite in the browser via [sql.js](https://github.com/sql-js/sql.js) (self-hosted, runs in a Web Worker) |
+| Parsing | A small streaming plist (XML) parser I wrote for Apple's export format |
+| Front end | Plain HTML, CSS and JavaScript (ES modules). No framework, no build step |
+| Album art | Apple's public iTunes Search API |
+| Hosting | GitHub Pages |
 
-`Library.xml` contains no images, so `js/artwork.js` looks up each song by name with Apple's public [iTunes Search API](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/):
+## Why I built it
 
-1. It takes a result with the same title and artist, preferring the same album and skipping live, remix and karaoke versions.
-2. If the song itself isn't returned, it uses any result by the same artist from the same album, since that has the same cover.
-3. If neither matches, the tile keeps a plain placeholder instead of showing a wrong cover.
+I wanted a project that showed real SQL skills on data I actually care about. Apple Music doesn't give you much: no all-time stats, and nothing like Spotify Wrapped on demand. It *does* let you export your whole library, with every song's play count, skip count, date added and last played.
 
-Every album cover seen in any search is remembered, so other songs from that album need no lookup. iTunes allows about 20 searches a minute, so lookups are paced and pause briefly if Apple rate-limits them. Results are cached in the browser, so covers load instantly on later visits. Each artist's picture is the cover of their most-played song (worked out in `sql/queries/top_artists.sql`). The sample library ships its covers, so it makes no lookups.
+So I asked: what if that file became a proper relational database, and every number on the page was a SQL query you could read? The schema is normalized (`artists → albums → tracks`, plus a many-to-many `playlist_tracks` table). The queries use joins, CTEs, window functions (`ROW_NUMBER`, `RANK`, `SUM() OVER`), date functions and a named `:export_date` parameter. That way "six months ago" means six months before *your* export, not today.
 
-## Project structure
-
-```
-tracklog/
-├── index.html               page layout
-├── 404.html                 "page not found" (GitHub Pages serves it for any missing URL)
-├── privacy.html, terms.html
-├── sitemap.xml, site.webmanifest, favicon.ico
-├── img/                     icons and the link-preview image (og-image.png)
-├── css/styles.css           styling
-├── js/
-│   ├── main.js              starts the app, draws each card, runs the SQL editor
-│   ├── database.js          loads the .sql files, parses Library.xml, builds SQLite
-│   ├── render.js            bar charts, song lists, tables, the monthly chart
-│   ├── artwork.js           finds album covers with the iTunes Search API
-│   └── sample-library.js    demo library (real songs, invented play counts)
-└── sql/
-    ├── schema.sql           tables: artists, albums, tracks, playlists, playlist_tracks + v_tracks view
-    ├── queries/             one query per dashboard card
-    └── examples/            example queries for the "Ask Your Library in SQL" box
-```
-
-## The SQL
-
-The schema is normalized: `artists → albums → tracks`, with a many-to-many `playlist_tracks` table. The `v_tracks` view joins names back in and calculates `hours_listened`.
-
-Queries use joins, aggregation, CTEs, window functions (`ROW_NUMBER`, `RANK`, `SUM() OVER`), date functions and named parameters. For example, each playlist's most-played song:
+For example, here's each playlist's most-played song in one pass:
 
 ```sql
 WITH ranked AS (
@@ -68,19 +48,68 @@ WITH ranked AS (
 SELECT playlist, plays, top_song FROM ranked WHERE rn = 1 ORDER BY plays DESC;
 ```
 
-To add a new card, write a query in `sql/queries/`, add its name to `QUERY_NAMES` in `js/database.js`, and add a card for it in `index.html`.
+## How it works
 
-## Get your library file
+```
+Library.xml ─► streaming parser (worker) ─► SQLite (worker) ─► one SQL query per card ─► charts
+```
+
+1. **Reading.** `js/worker.js` reads the file in chunks with `js/plist.js`, so the page stays responsive and shows progress. Every field is type-checked. One damaged song gets skipped, not the whole file.
+2. **Building.** The worker inserts songs, artists, albums and playlists into the schema in `sql/schema.sql`, inside one transaction that rolls back if anything fails.
+3. **Querying.** Each card runs one query from `sql/queries/`. Console queries that run longer than 10 seconds are stopped.
+4. **Rendering.** `js/render.js` turns results into ranked lists, bars and tables. All text goes in with `textContent`, never as HTML.
+
+**Privacy and security.** A strict Content-Security-Policy only allows this site and Apple's search and image hosts. The font and SQLite engine are self-hosted, so no request goes to Google or a CDN. A "Clear saved covers & settings" button removes everything Tracklog stores in your browser. See [privacy.html](privacy.html).
+
+## Run it locally
+
+The page loads its `.sql` files and the worker with `fetch`, which browsers block when you double-click `index.html`. Start a small local server in the project folder instead.
+
+**Mac** (Terminal):
+
+```bash
+cd path/to/Tracklog
+python3 -m http.server 8000
+```
+
+**Windows** (PowerShell or Command Prompt):
+
+```bash
+cd path\to\Tracklog
+py -m http.server 8000
+```
+
+Then open http://localhost:8000.
+
+To get your library file:
 
 - **Mac:** Music app → File → Library → Export Library…
 - **Windows:** iTunes → File → Library → Export Library…
 
-## Run it locally
+## Project structure
 
-The page loads the `.sql` files with `fetch`, which browsers block when you double-click `index.html`. Start a small local server from the project folder instead:
-
-```bash
-python3 -m http.server 8000
+```
+Tracklog/
+├── index.html               the app
+├── 404.html, privacy.html, terms.html
+├── css/styles.css           styling (neutral palette, one accent for the main action)
+├── js/
+│   ├── main.js              starts the app, draws each card, upload + SQL console
+│   ├── database.js          loads the .sql files; talks to the worker
+│   ├── worker.js            reads Library.xml, builds SQLite, runs queries (off the main thread)
+│   ├── plist.js             streaming parser for Apple's plist XML
+│   ├── render.js            song lists, artist bars, tables, the monthly chart
+│   ├── artwork.js           album covers via the iTunes Search API
+│   └── sample-library.js    demo library (real songs, invented play counts)
+├── sql/
+│   ├── schema.sql           tables + the v_tracks view
+│   ├── queries/             one query per dashboard card
+│   └── examples/            example queries for the SQL console
+└── vendor/                  sql.js 1.12.0 and the Inter font (with their licences)
 ```
 
-Then open http://localhost:8000. On GitHub Pages it works with no setup.
+To add a card, write a query in `sql/queries/`, add its name to `QUERY_NAMES` in `js/database.js`, add an element with `data-q="<name>"` to `index.html`, and add a `case` for it in `renderAll()` in `js/main.js`.
+
+## Built with AI pairing
+
+I built Tracklog by pairing with Claude, an AI coding assistant. I decided what the dashboard should say, tested it against my own 697-song library, and pushed back when numbers or covers looked wrong.

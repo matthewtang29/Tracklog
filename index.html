@@ -6,7 +6,7 @@
   <title>Tracklog: your Apple Music library as a SQL database</title>
   <meta name="description" content="Turn your Apple Music library into a SQL database and see your listening habits. Runs entirely in your browser.">
   <!-- GitHub Pages can't send security headers, so the content policy lives here. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://itunes.apple.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://*.mzstatic.com; connect-src 'self' https://itunes.apple.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https://*.mzstatic.com; connect-src 'self' https://itunes.apple.com; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="canonical" href="https://matthewtang29.github.io/Tracklog/">
   <meta name="theme-color" content="#0f1113">
@@ -26,8 +26,7 @@
   <link rel="icon" href="img/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="preload" href="vendor/inter/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -56,14 +55,27 @@
       <b id="source-title">Sample library</b>
       <p id="msg">Loading the database engine…</p>
     </div>
-    <label class="btn small" for="file">Upload Library.xml</label>
+    <button class="btn small" type="button" data-upload data-upload-label="Upload Library.xml">Upload Library.xml</button>
     <input type="file" id="file" accept=".xml,text/xml,application/xml" hidden>
     <button class="link-btn" id="open-help" type="button" data-help>How do I get this file?</button>
     <button class="link-btn" id="load-sample" type="button" hidden>Back to the sample library</button>
+    <div class="art-ask" id="art-ask" hidden>
+      <p>Show album covers? Tracklog would send the title and artist of songs on screen to Apple's iTunes Search to find them.</p>
+      <div class="art-ask-actions">
+        <button class="btn quiet small" type="button" id="art-yes">Find covers</button>
+        <button class="link-btn" type="button" id="art-no">No thanks</button>
+      </div>
+    </div>
     <label class="toggle"><input type="checkbox" id="art-toggle" checked> Show cover art</label>
     <p id="art-progress" hidden></p>
+    <button class="link-btn" type="button" id="clear-data">Clear saved covers &amp; settings</button>
   </div>
 </aside>
+
+<div class="progress" id="progress" role="status" aria-live="polite" hidden>
+  <span id="progress-text">Loading…</span>
+  <progress id="progress-bar" max="1" value="0"></progress>
+</div>
 
 <main class="main loading" id="results">
   <noscript><p class="notice">Tracklog runs in your browser and needs JavaScript turned on.</p></noscript>
@@ -74,7 +86,7 @@
       <p id="intro-note">You're looking at a sample library. Upload your own Library.xml to see your stats. The file never leaves your computer.</p>
     </div>
     <div class="intro-cta">
-      <label class="btn" for="file" id="cta-main">Upload Library.xml</label>
+      <button class="btn" type="button" data-upload data-upload-label="Upload Library.xml">Upload Library.xml</button>
       <button class="link-btn" type="button" data-help>How do I get this file?</button>
     </div>
   </section>
@@ -142,7 +154,7 @@
     <label for="sql" class="field-label">Query</label>
     <textarea id="sql" spellcheck="false"></textarea>
     <div class="runbar">
-      <button class="btn" id="run" type="button">Run query</button>
+      <button class="btn quiet" id="run" type="button">Run query</button>
       <span class="run-msg" id="run-msg"></span>
     </div>
     <div class="tablewrap" id="run-out"></div>
@@ -152,7 +164,7 @@
     </details>
   </section>
 
-  <p class="fine">Tracklog builds a SQLite database in your browser and runs every card as a SQL query. Your file never leaves this page. Cover art is looked up by song and artist name with Apple's public iTunes Search.</p>
+  <p class="fine">Tracklog builds a SQLite database in your browser and runs every card as a SQL query. Your file is never uploaded. Covers for your own library are only looked up (by song title and artist, with Apple's public iTunes Search) if you say yes. <a href="privacy.html">Privacy details</a></p>
 
   <footer class="footer">
     <span>Tracklog by Matthew Tang · Not affiliated with Apple.</span>
@@ -166,7 +178,7 @@
 </main>
 
 <div class="sticky-cta" id="sticky-cta" hidden>
-  <label class="btn" for="file">Upload your Library.xml</label>
+  <button class="btn" type="button" data-upload data-upload-label="Upload your Library.xml">Upload your Library.xml</button>
 </div>
 
 <dialog id="help">
@@ -190,15 +202,13 @@
   <p class="fine">Play counts include your iPhone's plays when Sync Library is turned on. The export needs a computer; the iPhone app can't make one.</p>
   <div class="dialog-actions">
     <button class="btn ghost" id="close-help" type="button">Close</button>
-    <label class="btn" for="file">Choose file</label>
+    <button class="btn" type="button" data-upload>Choose file</button>
   </div>
 </dialog>
 
 <div class="drop-overlay" id="drop-overlay" hidden>Drop Library.xml to analyze it</div>
 
-<!-- SQLite compiled to JavaScript (sql.js) -->
-<script src="https://cdn.jsdelivr.net/npm/sql.js@1.12.0/dist/sql-asm-memory-growth.js"
-        integrity="sha384-3Dv2K3/fpQ1Rvr95pBp85OTf/NcF3UHhlE3ZH2bdFHjqm27WViOvBZHOGbDFwamK" crossorigin="anonymous"></script>
+<!-- SQLite (sql.js) is loaded by js/worker.js from vendor/, off the main thread. -->
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

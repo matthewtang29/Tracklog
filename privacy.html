@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Privacy · Tracklog</title>
   <meta name="description" content="What Tracklog does with your Apple Music library file: it stays in your browser.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="canonical" href="https://matthewtang29.github.io/Tracklog/privacy.html">
   <meta name="theme-color" content="#0f1113">
   <link rel="icon" href="favicon.ico" sizes="32x32">
   <link rel="icon" href="img/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -22,26 +21,27 @@
     <b>Tracklog</b>
   </a>
   <h1>Privacy</h1>
-  <p class="fine">Last updated October 28, 2026</p>
+  <p class="fine">Last updated November 11, 2026</p>
   <p>Tracklog has no server and no accounts. It doesn't use cookies, analytics or ads.</p>
 
   <h2>Your library file</h2>
   <p>When you upload Library.xml, your browser reads it and builds a database in this tab's memory. The file and the database are never uploaded anywhere. Closing or reloading the tab deletes them.</p>
+  <p>You can check this yourself: open your browser's developer tools, go to the Network tab, and upload a file. No request carries it.</p>
 
   <h2>Cover art lookups</h2>
-  <p>To show album covers, Tracklog sends the title, artist and album of the songs on screen to Apple's public iTunes Search service, and loads the cover images from Apple. Apple sees those searches and your IP address, as with any website request. Their handling is covered by <a href="https://www.apple.com/legal/privacy/">Apple's privacy policy</a>. Turn off <b>Show cover art</b> in the sidebar to stop these requests.</p>
+  <p>Your library file has no pictures in it. To show album covers for <b>your own</b> library, Tracklog can send the title, artist and album of the songs on screen to Apple's public iTunes Search service, and load the cover images from Apple. It asks you first, and sends nothing until you choose <b>Find covers</b>. Apple sees those searches and your IP address, as with any website request. Their handling is covered by <a href="https://www.apple.com/legal/privacy/">Apple's privacy policy</a>. Turn off <b>Show cover art</b> in the sidebar at any time to stop these requests.</p>
+  <p>The sample library ships with its cover links, so it never searches. Its images still load from Apple's image servers.</p>
 
   <h2>Stored in your browser</h2>
   <ul>
-    <li>Cover image links that were already found, so they don't have to be searched again.</li>
-    <li>Whether you turned cover art off.</li>
+    <li>Cover image links that were already found, so they don't have to be searched again. They're saved under each song's title and artist and each album's name, so this list does reveal some of the songs in your library to anyone using this browser.</li>
+    <li>Whether you chose to show cover art.</li>
   </ul>
-  <p>These stay on your device. Clear this site's data in your browser settings to remove them.</p>
+  <p>These stay on your device and are never sent anywhere. Use <b>Clear saved covers &amp; settings</b> in the sidebar to delete them, or clear this site's data in your browser settings.</p>
 
   <h2>Other services the page loads</h2>
+  <p>The Inter font and the SQLite engine (sql.js) are served from this site, not from Google Fonts or a CDN. Apart from the cover lookups above, the only other service involved is the host:</p>
   <ul>
-    <li>The Inter font from Google Fonts (<a href="https://policies.google.com/privacy">Google's privacy policy</a>).</li>
-    <li>The SQLite engine (sql.js) from the jsDelivr CDN.</li>
     <li>The site is hosted on GitHub Pages, which may log visits for security (<a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>).</li>
   </ul>
 
