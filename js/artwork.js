@@ -8,6 +8,10 @@
 // Every album cover seen in any search is remembered, so other songs from that
 // album never need a lookup. iTunes allows about 20 searches a minute, so
 // lookups are spaced out and pause when Apple asks us to slow down.
+//
+// Privacy: a lookup sends a song's title, artist and album to Apple. The sample
+// library ships its own covers, so it never searches. For an uploaded library,
+// main.js asks first and nothing is searched until the person says yes.
 
 const CACHE_KEY = "tracklog-covers-v2";
 const SPACING_MS = 1600;     // stays under ~20 searches a minute with bursts
@@ -60,50 +64,50 @@ function rememberAlbums(results) {
   }
 }
 
+/* ---------- The person's choice ----------
+   "on": show covers and look them up. "off": no covers at all.
+   null: not asked yet. Sample covers show, nothing is searched. */
+
+const CHOICE_KEY = "tracklog-art";
+let choice = null;
+try { choice = localStorage.getItem(CHOICE_KEY); } catch { /* storage blocked */ }
+if (choice !== "on" && choice !== "off") choice = null;
+
+export const artChoice = () => choice;
+export const artEnabled = () => choice !== "off";
+export function setArtChoice(value) {
+  choice = value;
+  try { localStorage.setItem(CHOICE_KEY, value); } catch { /* storage blocked */ }
+}
+
+/** Forget every cover and the cover setting saved in this browser. */
+export function clearSavedData() {
+  cancelPending();
+  cache = { songs: {}, albums: {} };
+  choice = null;
+  clearTimeout(saveTimer);
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith("tracklog-")).forEach((k) => localStorage.removeItem(k));
+  } catch { /* storage blocked */ }
+}
+
 /* ---------- Network ---------- */
 
-let enabled = true;
-try { enabled = localStorage.getItem("tracklog-art") !== "off"; } catch { /* ignore */ }
-export const artEnabled = () => enabled;
-export function setArtEnabled(on) {
-  enabled = on;
-  try { localStorage.setItem("tracklog-art", on ? "on" : "off"); } catch { /* ignore */ }
-}
-
 class RateLimited extends Error {}
-let jsonpId = 0;
-
-/* JSONP fallback, in case a browser blocks the cross-site fetch. */
-function jsonp(url, timeoutMs = 8000) {
-  return new Promise((resolve, reject) => {
-    const name = `__tracklogArt${++jsonpId}`;
-    const script = document.createElement("script");
-    const timer = setTimeout(() => finish(new RateLimited("timeout")), timeoutMs);
-    function finish(err, data) {
-      clearTimeout(timer);
-      delete window[name];
-      script.remove();
-      err ? reject(err) : resolve(data);
-    }
-    window[name] = (data) => finish(null, data);
-    script.onerror = () => finish(new RateLimited("blocked"));
-    script.src = `${url}&callback=${name}`;
-    document.head.append(script);
-  });
-}
 
 async function searchSongs(term) {
   const url = `https://itunes.apple.com/search?media=music&entity=song&limit=25&term=${encodeURIComponent(term)}`;
-  let data;
+  let res;
   try {
-    const res = await fetch(url);
-    if (res.status === 403 || res.status === 429) throw new RateLimited(String(res.status));
-    data = await res.json();
-  } catch (e) {
+    res = await fetch(url, { referrerPolicy: "no-referrer", credentials: "omit" });
+  } catch {
     // A rate-limited response has no CORS header, so fetch throws a TypeError.
-    data = await jsonp(url);
+    throw new RateLimited("blocked");
   }
-  const results = data?.results || [];
+  if (res.status === 403 || res.status === 429) throw new RateLimited(String(res.status));
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => null);
+  const results = Array.isArray(data?.results) ? data.results : [];
   rememberAlbums(results);
   return results;
 }
@@ -151,7 +155,7 @@ async function findCover({ title, artist, album }) {
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const queue = [];
 const waiting = new Map();
-let running = false;
+let activeGeneration = -1;   // which generation's loop is running, if any
 let generation = 0;
 let onProgress = () => {};
 let done = 0;
@@ -176,11 +180,14 @@ function settle(job, url) {
   onProgress(done, total);
 }
 
+// One loop at a time works through the queue. When a new library is loaded,
+// cancelPending() bumps `generation`: the old loop stops at its next check
+// (without touching the new progress count) and a new loop can start at once.
 async function pump() {
-  if (running) return;
-  running = true;
-  const gen = generation;
-  while (queue.length && gen === generation) {
+  if (activeGeneration === generation) return;
+  const gen = activeGeneration = generation;
+  const current = () => gen === generation;
+  while (queue.length && current()) {
     const job = queue.shift();
     const hit = cached(job);            // an earlier search may have found this album
     if (hit !== undefined) { settle(job, hit); continue; }
@@ -188,8 +195,10 @@ async function pump() {
       const url = await findCover(job);
       cache.songs[job.key] = url;       // null = searched, nothing reliable found
       saveCache();
+      if (!current()) break;
       settle(job, url);
     } catch (e) {
+      if (!current()) break;
       if (e instanceof RateLimited && ++job.tries < MAX_TRIES) {
         queue.unshift(job);
         onProgress(done, total, "paused");
@@ -200,10 +209,10 @@ async function pump() {
     }
     await wait(SPACING_MS);
   }
-  running = false;
+  if (activeGeneration === gen) activeGeneration = -1;
 }
 
-function lookup(song) {
+function find(song) {
   const hit = cached(song);
   if (hit !== undefined) return Promise.resolve(hit);
   const key = songKey(song.title, song.artist);
@@ -220,8 +229,8 @@ function lookup(song) {
 }
 
 /** Show a cover in a placeholder tile once it's found. */
-export function attachArtwork(tile, { title, artist, album, url }) {
-  if (!enabled || !artist || artist === "Unknown artist") return;
+export function attachArtwork(tile, { title, artist, album, url, lookup }) {
+  if (!artEnabled() || !artist || artist === "Unknown artist") return;
   const show = (src) => {
     if (!src || !tile.isConnected) return;
     const img = new Image();
@@ -237,8 +246,8 @@ export function attachArtwork(tile, { title, artist, album, url }) {
   };
   // Wait a tick so the tile is on the page before the cover is added.
   if (url) return queueMicrotask(() => show(url));   // the sample library ships its covers
-  if (!title) return;
-  lookup({ title, artist, album: album || "" }).then(show);
+  if (!lookup || !title) return;
+  find({ title, artist, album: album || "" }).then(show);
 }
 
 /** Drop queued lookups, e.g. when a different library is loaded. */
@@ -246,7 +255,6 @@ export function cancelPending() {
   generation++;
   queue.length = 0;
   waiting.clear();
-  running = false;
   done = 0;
   total = 0;
   onProgress(0, 0);
