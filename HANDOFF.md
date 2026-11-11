@@ -33,9 +33,10 @@ This pass builds on PR #1 (`launch-hardening`: CSP, 404, privacy/terms, Open Gra
 - The copy is now accurate. The intro says the file is "never uploaded" and is gone when you reload. `privacy.html` explains that the saved cover cache is keyed by song title and artist, so it does reveal some of your songs to anyone using that browser. It also explains the ask-first rule and the self-hosted font and engine.
 - **Depends on it:** `artwork.js` exports `artChoice()`, `setArtChoice()` and `clearSavedData()`. `render.js` passes `lookup` through to `attachArtwork()`. The old `setArtEnabled()` is gone.
 
-### 6. Cover lookups: JSONP removed, queue bug fixed
-- **What:** removed the JSONP fallback, which ran a script from Apple with full page access. Lookups use `fetch` only (no cookies, no referrer). Fixed a race where loading a new library mid-lookup could leave two lookup loops running, doubling the request rate and triggering more of Apple's blocks.
-- **Depends on it:** `itunes.apple.com` is now only in `connect-src`, not `script-src`.
+### 6. Cover lookups: queue bug fixed (JSONP fallback kept)
+- **What:** fixed a race where loading a new library mid-lookup could leave two lookup loops running, doubling the request rate and triggering more of Apple's blocks. Lookups try `fetch` first (no cookies, no referrer).
+- **Correction (PR #3):** PR #2 removed the JSONP fallback. After the merge, covers stopped loading on the live site, because iTunes Search doesn't reliably send the CORS header `fetch` needs. The fallback is back, so `itunes.apple.com` is in `script-src` again. The "Find covers" question also moved from the bottom of the sidebar into the top intro panel, where it's easy to see.
+- **Depends on it:** the CSP in `index.html` (`script-src` and `connect-src` both list `itunes.apple.com`).
 
 ### 7. Design: one accent, on the primary action only
 - **What:** sage (`--accent`) is now used only on the Upload button (and the 404 page's "Go to Tracklog"). Everything else is neutral:
