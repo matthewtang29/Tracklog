@@ -98,8 +98,8 @@ export function renderPlaylists(out, rows, { art = false } = {}) {
 }
 
 /** Genre chips with hours. */
-export function renderGenres(out, rows) {
-  if (!rows.length) return empty(out);
+export function renderGenres(out, rows, emptyText) {
+  if (!rows.length) return empty(out, emptyText);
   out.replaceChildren();
   rows.forEach((r) => {
     const chip = el("span", "genre", r.genre);

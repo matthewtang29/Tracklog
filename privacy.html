@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Privacy · Tracklog</title>
-  <meta name="description" content="What Tracklog does with your Apple Music library file: it stays in your browser.">
+  <meta name="description" content="What Tracklog does with your Apple Music and Spotify files: they stay in your browser.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="canonical" href="https://matthewtang29.github.io/Tracklog/privacy.html">
@@ -24,8 +24,10 @@
   <p class="fine">Last updated November 11, 2026</p>
   <p>Tracklog has no server and no accounts. It doesn't use cookies, analytics or ads.</p>
 
-  <h2>Your library file</h2>
-  <p>When you upload Library.xml, your browser reads it and builds a database in this tab's memory. The file and the database are never uploaded anywhere. Closing or reloading the tab deletes them.</p>
+  <h2>Your library files</h2>
+  <p>When you upload Library.xml or the .json files from a Spotify data download, your browser reads them and builds a database in this tab's memory. The files and the database are never uploaded anywhere. Closing or reloading the tab deletes them.</p>
+  <p>Tracklog only keeps the song, artist, album, time and play details it needs. A Spotify download also contains things like IP addresses, country and search history. Those files and fields are ignored, and nothing from them goes into the database.</p>
+  <p>If you add a friend's files to make a Blend, the same applies: they stay in this tab and are gone when it closes. Only add someone's files if they're happy for you to see their listening.</p>
   <p>You can check this yourself: open your browser's developer tools, go to the Network tab, and upload a file. No request carries it.</p>
 
   <h2>Cover art lookups</h2>
