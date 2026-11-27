@@ -245,6 +245,20 @@ const sourceNote = (p) => [
   p.ignoredFiles ? plural(p.ignoredFiles, "other Spotify file") + " ignored" : null,
 ].filter(Boolean).join(" · ");
 
+/** Small Apple Music / Spotify marks for a person's chip, from their sources text. */
+function serviceIcons(sources = "") {
+  const box = el("span", "svc");
+  for (const [name, file] of [["Apple Music", "apple-music"], ["Spotify", "spotify"]]) {
+    if (!sources.includes(name)) continue;
+    const img = el("img");
+    img.src = `img/${file}.svg`;
+    img.alt = "";
+    img.width = img.height = 22;
+    box.append(img);
+  }
+  return box;
+}
+
 function renderPeople() {
   const bar = $("people");
   const list = $("people-list");
@@ -254,7 +268,7 @@ function renderPeople() {
     const b = el("button", "person" + (i === state.view ? " on" : ""));
     b.type = "button";
     b.setAttribute("aria-pressed", String(i === state.view));
-    b.append(el("b", null, state.people[i].name), el("span", null, p.sources));
+    b.append(serviceIcons(p.sources), el("b", null, state.people[i].name), el("span", null, p.sources));
     b.title = sourceNote(p);
     b.addEventListener("click", () => viewPerson(i));
     list.append(b);
@@ -505,7 +519,7 @@ $("rename").addEventListener("click", startRename);
 $("remove-person").addEventListener("click", removePerson);
 $("whose-cancel").addEventListener("click", () => $("whose").close());
 
-/* ---------- Cover art progress in the sidebar ---------- */
+/* ---------- Cover art progress in the settings strip ---------- */
 
 setProgressListener((done, total, paused) => {
   const p = $("art-progress");
@@ -563,7 +577,7 @@ $("clear-data").addEventListener("click", () => {
   setMessage("Saved covers and settings cleared from this browser.");
 });
 
-// Sidebar: highlight the section currently on screen
+// Top bar: highlight the section currently on screen
 const navLinks = [...document.querySelectorAll("#nav a")];
 const sections = navLinks.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
 const observer = new IntersectionObserver((entries) => {
