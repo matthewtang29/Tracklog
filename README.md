@@ -12,6 +12,7 @@
 
 - **Your stats from your own file.** Drop in the `Library.xml` you export from the Music app or iTunes, or start with the built-in sample library.
 - **A dashboard where every card is a SQL query.** You get total hours, top songs and artists, playlists, genres, forgotten favourites, most skipped songs and songs added per month. Click "Show SQL" on any card to read the query behind it.
+- **Pick Me a Song.** Answer three questions (an old favourite, something forgotten or a song you barely play; a vibe taken from your own playlists or genres; safe or brave), or press Surprise me. The answers fill in the named parameters of one query, `sql/queries/suggest.sql`, which scores your songs. The page picks one of the top 20 at random, avoids repeats, and says why it chose it. If nothing matches, it loosens one answer and tells you which.
 - **A SQL console.** Write your own queries against your own library, or start from six example queries.
 - **Album covers.** Library exports contain no images, so covers are matched through Apple's iTunes Search with careful matching rules, caching and rate-limit backoff. This only happens if you say yes.
 - **Private by design.** There's no server and no account. Your file is read in your browser and never uploaded.
@@ -99,6 +100,7 @@ Tracklog/
 │   ├── worker.js            reads Library.xml, builds SQLite, runs queries (off the main thread)
 │   ├── plist.js             streaming parser for Apple's plist XML
 │   ├── render.js            song lists, artist bars, tables, the monthly chart
+│   ├── suggest.js           the Pick Me a Song quiz (weighted random pick, fallbacks)
 │   ├── artwork.js           album covers via the iTunes Search API
 │   └── sample-library.js    demo library (real songs, invented play counts)
 ├── sql/

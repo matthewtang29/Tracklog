@@ -41,6 +41,7 @@
     <div class="nav-label">Library</div>
     <nav class="nav" id="nav">
       <a href="#overview" class="active">Overview</a>
+      <a href="#pick">Pick a Song</a>
       <a href="#songs">Top Songs</a>
       <a href="#artists">Top Artists</a>
       <a href="#playlists">Playlists</a>
@@ -107,6 +108,36 @@
     <div class="stat"><strong id="t-skip">—</strong><span>Skip rate</span></div>
     <div class="stat"><strong id="t-never">—</strong><span>Never played</span></div>
   </section>
+
+  <article class="panel suggest" id="pick" aria-labelledby="pick-title">
+    <div class="panel-head"><h2 id="pick-title">Pick Me a Song</h2><span class="hint">Answer three questions, or let it choose</span></div>
+    <div class="quiz">
+      <div class="q" role="group" aria-labelledby="q-mode">
+        <span class="field-label" id="q-mode">What are you after?</span>
+        <div class="chips" data-question="mode">
+          <button type="button" class="chip on" data-value="favourite" aria-pressed="true">An old favourite</button>
+          <button type="button" class="chip" data-value="forgotten" aria-pressed="false">Something I've forgotten</button>
+          <button type="button" class="chip" data-value="barely" aria-pressed="false">A song I barely play</button>
+        </div>
+      </div>
+      <div class="q" role="group" aria-labelledby="q-vibe">
+        <span class="field-label" id="q-vibe">What's the vibe?</span>
+        <div class="chips" data-question="vibe" id="vibe-chips"></div>
+      </div>
+      <div class="q" role="group" aria-labelledby="q-risk">
+        <span class="field-label" id="q-risk">How brave are you feeling?</span>
+        <div class="chips" data-question="risk">
+          <button type="button" class="chip on" data-value="safe" aria-pressed="true">Safe bet</button>
+          <button type="button" class="chip" data-value="brave" aria-pressed="false">Include songs I skip</button>
+        </div>
+      </div>
+    </div>
+    <div class="runbar">
+      <button class="btn quiet" id="pick-go" type="button">Pick a song</button>
+      <button class="btn ghost" id="pick-surprise" type="button">Surprise me</button>
+    </div>
+    <div class="pick-out" id="pick-out" aria-live="polite"></div>
+  </article>
 
   <div class="cols-2">
     <article class="panel" id="songs" data-q="top_songs">

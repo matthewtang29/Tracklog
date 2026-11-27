@@ -6,6 +6,7 @@ import { loadSqlFiles, Library, Cancelled } from "./database.js";
 import { nf, pct, fmtDate, el, renderSongList, renderArtists, renderPlaylists, renderGenres, renderTable, renderMonths, addSqlToggle } from "./render.js";
 import { artChoice, artEnabled, setArtChoice, clearSavedData, cancelPending, setProgressListener } from "./artwork.js";
 import { sampleLibrary, sampleCover } from "./sample-library.js";
+import { resetSuggest } from "./suggest.js";
 
 const $ = (id) => document.getElementById(id);
 const SAMPLE_NOTE = "Real songs, invented play counts. Upload yours to see your own.";
@@ -36,6 +37,13 @@ const hideProgress = () => { $("progress").hidden = true; };
 const setBusy = (on) => $("results").classList.toggle("loading", on);
 
 /* ---------- Draw every panel from its query ---------- */
+
+// `art` is false (no covers) or how to find them. The sample library ships
+// its own cover URLs; an uploaded one only searches Apple once allowed.
+const currentArt = () => artEnabled() && {
+  coverFor: state.kind === "sample" ? sampleCover : null,
+  lookup: state.kind === "user" && artChoice() === "on",
+};
 
 async function renderAll() {
   const gen = ++renderGeneration;
@@ -70,12 +78,7 @@ async function renderAll() {
   $("t-skip").textContent = pct(s.skip_rate);
   $("t-never").textContent = nf.format(s.never_played || 0);
 
-  // `art` is false (no covers) or how to find them. The sample library ships
-  // its own cover URLs; an uploaded one only searches Apple once allowed.
-  const art = artEnabled() && {
-    coverFor: state.kind === "sample" ? sampleCover : null,
-    lookup: state.kind === "user" && artChoice() === "on",
-  };
+  const art = currentArt();
   document.querySelectorAll("[data-q]").forEach((panel) => {
     const key = panel.dataset.q;
     const out = panel.querySelector("[data-out]");
@@ -250,6 +253,7 @@ async function load(source, kind, describe, progressName) {
     state.db = next;
     state.kind = kind;
     await renderAll();
+    await resetSuggest({ db: next, queries: state.sql.queries, params, art: currentArt });
     setSource(kind, describe(next.stats));
     previous?.close();
     runUserQuery();
