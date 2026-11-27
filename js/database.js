@@ -5,6 +5,7 @@
 export const QUERY_NAMES = [
   "summary", "top_artists", "top_songs", "playlists",
   "genres", "forgotten", "most_skipped", "added_by_month",
+  "suggest", "suggest_vibes",   // used by the Pick Me a Song card (suggest.js)
 ];
 
 export const EXAMPLE_FILES = [
