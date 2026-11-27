@@ -1,6 +1,7 @@
-// sample-library.js: a demo library shown before anyone uploads their own.
-// The songs are real (so cover art can be found), but every play count,
-// skip count and date is invented.
+// sample-library.js: the demo shown before anyone uploads their own files:
+// Alex's Apple Music library and Sam's Spotify download, so the Blend card has
+// two people to compare. The songs are real (so cover art can be found), but
+// every play count, skip count and date is invented.
 
 const CATALOG = [
   ["Frank Ocean", "R&B/Soul", [
@@ -83,6 +84,12 @@ const COVERS = {
   "24K Magic": "Music125/v4/e3/47/a0/e347a0cc-87ce-5d05-d560-176c7d48f66e/075679904119.jpg",
   "Punisher": "Music115/v4/39/91/4f/39914f60-e9aa-4ae9-3962-44b0a5e5d570/656605150062.jpg",
   "Salad Days": "Music211/v4/e0/04/eb/e004eb2b-754f-4a76-9ecc-87d4eea2a327/cover.jpg",
+  // Sam's albums (sampleFriend)
+  "Laurel Hell": "Music115/v4/fe/01/99/fe019995-88e4-9e5c-9621-d28953dc9aa5/27273.jpg",
+  "Puberty 2": "Music125/v4/7a/ee/82/7aee8209-a778-109f-0a98-bb415bc8e95d/656605142364.jpg",
+  "Beatopia": "Music116/v4/39/cb/28/39cb28c2-f48d-5e69-1469-592a7ac1dd11/192641938047_Cover.jpg",
+  "Submarine": "Music211/v4/0b/4d/b6/0b4db6bd-2d40-55a5-1714-67f5c816294d/075679659644.jpg",
+  "AM": "Music211/v4/69/9c/b5/699cb5d6-115c-ff73-9d26-e57ea4350d72/887828031795.png",
 };
 
 export const sampleCover = (album) => COVERS[album] ? `${ART}${COVERS[album]}/300x300bb.jpg` : null;
@@ -128,4 +135,70 @@ export function sampleLibrary() {
       { Name: "Rainy Sunday", "Playlist Persistent ID": "P4", "Playlist Items": pick(0.15) },
     ],
   };
+}
+
+/* ---------- Sam: a Spotify listener ----------
+   Built in the same shape as a real Spotify data download (an "Extended
+   streaming history" file, YourLibrary.json and Playlist1.json), so the demo
+   goes through the same reader as an uploaded download. Some artists overlap
+   with Alex's library, some don't. */
+
+const FRIEND_CATALOG = [
+  ["Mitski", [["Laurel Hell", ["Stay Soft", "Love Me More", "The Only Heartbreaker"]], ["Puberty 2", ["Your Best American Girl"]]]],
+  ["Frank Ocean", [["Blonde", ["Nights", "Ivy", "Solo", "Self Control"]]]],
+  ["beabadoobee", [["Beatopia", ["the perfect pair", "Glue Song", "Talk"]]]],
+  ["SZA", [["SOS", ["Kill Bill", "Snooze", "Nobody Gets Me"]]]],
+  ["The Marías", [["Submarine", ["No One Noticed", "Run Your Mouth"]]]],
+  ["Clairo", [["Immunity", ["Sofia", "Bags"]]]],
+  ["Arctic Monkeys", [["AM", ["Do I Wanna Know?", "R U Mine?", "Arabella"]]]],
+  ["Tame Impala", [["Currents", ["The Less I Know The Better", "New Person, Same Old Mistakes"]]]],
+  ["Steve Lacy", [["Gemini Rights", ["Bad Habit"]]]],
+  ["Laufey", [["Bewitched", ["From The Start"]]]],
+];
+
+export function sampleFriend() {
+  let seed = 29;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const end = Date.UTC(2026, 9, 18);
+  const iso = (ms) => new Date(ms).toISOString().slice(0, 19) + "Z";
+  const streams = [];
+  const songs = [];
+  let n = 0;
+
+  FRIEND_CATALOG.forEach(([artist, albums], ai) => {
+    const fame = Math.pow(1 - ai / FRIEND_CATALOG.length, 1.5);
+    albums.forEach(([album, titles]) => titles.forEach((title) => {
+      n++;
+      const uri = "spotify:track:sample" + n;
+      const length = Math.floor(150000 + rnd() * 140000);
+      songs.push({ artist, album, track: title, uri });
+      const plays = Math.floor(fame * 160 * Math.pow(rnd(), 1.2) + 3);
+      const skips = Math.floor(rnd() * rnd() * 14);
+      const firstDay = 30 + rnd() * 650;
+      for (let i = 0; i < plays + skips; i++) {
+        const skipped = i >= plays;
+        const ms = skipped ? Math.floor(1500 + rnd() * 25000) : (rnd() < 0.8 ? length : Math.floor(30000 + rnd() * (length - 30000)));
+        streams.push({
+          ts: iso(end - rnd() * firstDay * 864e5), platform: "ios", ms_played: ms, conn_country: "CA",
+          master_metadata_track_name: title, master_metadata_album_artist_name: artist,
+          master_metadata_album_album_name: album, spotify_track_uri: uri,
+          episode_name: null, episode_show_name: null, spotify_episode_uri: null,
+          reason_start: "trackdone", reason_end: skipped ? "fwdbtn" : "trackdone",
+          shuffle: rnd() < 0.5, skipped, offline: false, incognito_mode: false,
+        });
+      }
+    }));
+  });
+  streams.sort((a, b) => a.ts < b.ts ? -1 : 1);
+
+  const item = (s) => ({ track: { trackName: s.track, artistName: s.artist, albumName: s.album, trackUri: s.uri },
+    episode: null, localTrack: null, addedDate: "2026-03-14" });
+  return [
+    { name: "Streaming_History_Audio_2025-2026_0.json", data: streams },
+    { name: "YourLibrary.json", data: { tracks: songs.filter(() => rnd() < 0.35), albums: [], artists: [] } },
+    { name: "Playlist1.json", data: { playlists: [
+      { name: "bedroom pop", lastModifiedDate: "2026-09-02", items: songs.filter((s) => /Clairo|beabadoobee|Marías|Laufey|Mitski/.test(s.artist)).map(item) },
+      { name: "Late night", lastModifiedDate: "2026-08-20", items: songs.filter(() => rnd() < 0.4).map(item) },
+    ] } },
+  ];
 }

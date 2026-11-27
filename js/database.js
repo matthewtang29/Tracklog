@@ -1,11 +1,13 @@
 // database.js: the page's side of the database. Loads the .sql files and talks
-// to worker.js, which reads Library.xml, builds SQLite and runs the queries off
-// the main thread so a big library (or a slow query) can't freeze the page.
+// to worker.js, which reads Library.xml and Spotify .json files, builds SQLite
+// and runs the queries off the main thread so a big library (or a slow query)
+// can't freeze the page.
 
 export const QUERY_NAMES = [
   "summary", "top_artists", "top_songs", "playlists",
   "genres", "forgotten", "most_skipped", "added_by_month",
   "suggest", "suggest_vibes",   // used by the Pick Me a Song card (suggest.js)
+  "blend_match", "blend_artists", "blend_playlist",   // the Blend card (blend.js)
 ];
 
 export const EXAMPLE_FILES = [
@@ -91,12 +93,13 @@ class Connection {
 /** A library loaded into its own worker. */
 export class Library {
   /**
-   * Build from an uploaded File or a plain library object (the sample).
+   * Build one database for everyone. people: [{ name, files: [File] }], or for
+   * the sample [{ name, apple, spotify }] (see worker.js).
    * Returns { library, cancel } at once; `library` is a promise.
    */
-  static build(schema, source, onProgress) {
+  static build(schema, people, onProgress) {
     const conn = new Connection();
-    const library = conn.call({ type: "build", schema, ...source }, { onProgress })
+    const library = conn.call({ type: "build", schema, people }, { onProgress })
       .then(({ bytes, stats }) => new Library(conn, schema, bytes, stats))
       .catch((e) => { conn.close(); throw e; });
     return { library, cancel: () => conn.close() };
@@ -105,7 +108,20 @@ export class Library {
   constructor(conn, schema, bytes, stats) {
     this.conn = conn;
     this.bytes = bytes;   // kept so a stopped query can restart the worker
-    this.stats = stats;
+    this.stats = stats;   // { people: [{ id, name, sources, songs, exportDate, ... }] }
+    this.viewer = 1;
+    this.names = new Map();
+  }
+
+  /** Point the dashboard views (tracks, v_tracks, playlists) at one person. */
+  async view(listenerId) {
+    this.viewer = listenerId;
+    await this.query("UPDATE viewing SET listener_id = :id", { ":id": listenerId });
+  }
+
+  async rename(listenerId, name) {
+    this.names.set(listenerId, name);
+    await this.query("UPDATE listeners SET name = :name WHERE listener_id = :id", { ":id": listenerId, ":name": name });
   }
 
   /** Run SQL; resolves to { columns, rows, total } with each row as an object.
@@ -119,6 +135,11 @@ export class Library {
       this.conn.close();
       this.conn = new Connection();
       await this.conn.call({ type: "open", bytes: this.bytes });
+      // The saved copy is from before any view change or rename, so redo them.
+      await this.conn.call({ type: "query", sql: "UPDATE viewing SET listener_id = :id", params: { ":id": this.viewer } });
+      for (const [id, name] of this.names) {
+        await this.conn.call({ type: "query", sql: "UPDATE listeners SET name = :name WHERE listener_id = :id", params: { ":id": id, ":name": name } });
+      }
       throw new Error(`Stopped after ${timeoutMs / 1000} seconds. The query may loop forever or join too many rows.`);
     }
   }

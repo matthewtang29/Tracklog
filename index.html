@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Tracklog: your Apple Music library as a SQL database</title>
-  <meta name="description" content="Turn your Apple Music library into a SQL database and see your listening habits. Runs entirely in your browser.">
+  <title>Tracklog: your Apple Music or Spotify library as a SQL database</title>
+  <meta name="description" content="Turn your Apple Music or Spotify library into a SQL database, see your listening habits, and blend libraries with friends across both. Runs entirely in your browser.">
   <!-- GitHub Pages can't send security headers, so the content policy lives here. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://itunes.apple.com; worker-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https://*.mzstatic.com; connect-src 'self' https://itunes.apple.com; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -13,8 +13,8 @@
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tracklog">
-  <meta property="og:title" content="Tracklog: your Apple Music library as a SQL database">
-  <meta property="og:description" content="Upload your Library.xml and see your top songs, artists and forgotten favourites, all from SQL queries that run in your browser.">
+  <meta property="og:title" content="Tracklog: your Apple Music or Spotify library as a SQL database">
+  <meta property="og:description" content="Upload your Apple Music Library.xml or Spotify data and see your top songs, artists and forgotten favourites, or blend with a friend on the other service. All from SQL queries that run in your browser.">
   <meta property="og:url" content="https://matthewtang29.github.io/Tracklog/">
   <meta property="og:image" content="https://matthewtang29.github.io/Tracklog/img/og-image.png">
   <meta property="og:image:width" content="1200">
@@ -42,6 +42,7 @@
     <nav class="nav" id="nav">
       <a href="#overview" class="active">Overview</a>
       <a href="#pick">Pick a Song</a>
+      <a href="#blend">Blend</a>
       <a href="#songs">Top Songs</a>
       <a href="#artists">Top Artists</a>
       <a href="#playlists">Playlists</a>
@@ -56,9 +57,9 @@
       <b id="source-title">Sample library</b>
       <p id="msg">Loading the database engine…</p>
     </div>
-    <button class="btn small" type="button" data-upload data-upload-label="Upload Library.xml">Upload Library.xml</button>
-    <input type="file" id="file" accept=".xml,text/xml,application/xml" hidden>
-    <button class="link-btn" id="open-help" type="button" data-help>How do I get this file?</button>
+    <button class="btn small" type="button" data-upload data-upload-label="Upload your files">Upload your files</button>
+    <input type="file" id="file" accept=".xml,.json,text/xml,application/xml,application/json" multiple hidden>
+    <button class="link-btn" id="open-help" type="button" data-help>How do I get these files?</button>
     <button class="link-btn" id="load-sample" type="button" hidden>Back to the sample library</button>
     <label class="toggle"><input type="checkbox" id="art-toggle" checked> Show cover art</label>
     <p id="art-progress" hidden></p>
@@ -76,8 +77,8 @@
 
   <section class="intro">
     <div>
-      <h1>See your Apple Music library as a SQL database</h1>
-      <p id="intro-note">You're looking at a sample library. Upload your own Library.xml to see your stats. The file never leaves your computer.</p>
+      <h1>See your Apple Music or Spotify library as a SQL database</h1>
+      <p id="intro-note">You're looking at two sample listeners. Upload your own files to see your stats. They never leave your computer.</p>
       <div class="art-ask" id="art-ask" hidden>
         <p><b>Show album covers?</b> Your file has no pictures in it, so Tracklog would send the title and artist of the songs on screen to Apple's iTunes Search to find them.</p>
         <div class="art-ask-actions">
@@ -87,13 +88,29 @@
       </div>
     </div>
     <div class="intro-cta">
-      <button class="btn" type="button" data-upload data-upload-label="Upload Library.xml">Upload Library.xml</button>
-      <button class="link-btn" type="button" data-help>How do I get this file?</button>
+      <button class="btn" type="button" data-upload data-upload-label="Upload your files">Upload your files</button>
+      <button class="link-btn" type="button" data-help>How do I get these files?</button>
     </div>
   </section>
 
+  <section class="people" id="people" aria-label="People" hidden>
+    <div class="people-row">
+      <span class="field-label">Viewing</span>
+      <div class="people-list" id="people-list"></div>
+      <div class="people-actions">
+        <span class="person-actions" id="person-actions" hidden>
+          <button class="link-btn" type="button" id="add-files">Add files</button>
+          <button class="link-btn" type="button" id="rename">Rename</button>
+          <button class="link-btn" type="button" id="remove-person">Remove</button>
+        </span>
+        <button class="btn quiet small" type="button" id="add-person">+ Add a friend</button>
+      </div>
+    </div>
+    <p class="fine" id="person-note"></p>
+  </section>
+
   <section class="hero" id="overview">
-    <span class="eyebrow">Your listening, by the numbers</span>
+    <span class="eyebrow" id="hero-eyebrow">Your listening, by the numbers</span>
     <div class="hero-line">
       <span class="big" id="hero-num">—</span><span class="unit">hours</span>
       <p id="takeaway">&nbsp;</p>
@@ -137,6 +154,11 @@
       <button class="btn ghost" id="pick-surprise" type="button">Surprise me</button>
     </div>
     <div class="pick-out" id="pick-out" aria-live="polite"></div>
+  </article>
+
+  <article class="panel blend" id="blend" aria-labelledby="blend-title">
+    <div class="panel-head"><h2 id="blend-title">Blend</h2><span class="hint">A shared mix across Apple Music and Spotify</span></div>
+    <div class="blend-out" id="blend-out" aria-live="polite"></div>
   </article>
 
   <div class="cols-2">
@@ -195,10 +217,10 @@
     </details>
   </section>
 
-  <p class="fine">Tracklog builds a SQLite database in your browser and runs every card as a SQL query. Your file is never uploaded. Covers for your own library are only looked up (by song title and artist, with Apple's public iTunes Search) if you say yes. <a href="privacy.html">Privacy details</a></p>
+  <p class="fine">Tracklog builds a SQLite database in your browser and runs every card as a SQL query. Your files are never uploaded. Covers for your own library are only looked up (by song title and artist, with Apple's public iTunes Search) if you say yes. <a href="privacy.html">Privacy details</a></p>
 
   <footer class="footer">
-    <span>Tracklog by Matthew Tang · Not affiliated with Apple.</span>
+    <span>Tracklog by Matthew Tang · Not affiliated with Apple or Spotify.</span>
     <nav aria-label="Site">
       <a href="privacy.html">Privacy</a>
       <a href="terms.html">Terms</a>
@@ -209,35 +231,51 @@
 </main>
 
 <div class="sticky-cta" id="sticky-cta" hidden>
-  <button class="btn" type="button" data-upload data-upload-label="Upload your Library.xml">Upload your Library.xml</button>
+  <button class="btn" type="button" data-upload data-upload-label="Upload your files">Upload your files</button>
 </div>
 
 <dialog id="help">
-  <h2>Get your library file</h2>
-  <div class="os-tabs" role="tablist" aria-label="Your computer">
+  <h2>Get your library files</h2>
+  <div class="os-tabs" role="tablist" aria-label="Where your music is">
     <button role="tab" id="tab-mac" aria-selected="true" aria-controls="steps-mac">Mac</button>
     <button role="tab" id="tab-win" aria-selected="false" aria-controls="steps-win">Windows</button>
+    <button role="tab" id="tab-spotify" aria-selected="false" aria-controls="steps-spotify">Spotify</button>
   </div>
   <ol class="steps" id="steps-mac" role="tabpanel" aria-labelledby="tab-mac">
     <li><span>Open the <b>Music</b> app on your Mac.</span></li>
     <li><span>Choose File → Library → Export Library… in the menu bar.</span></li>
     <li><span>Save it. You'll get a file called Library.xml.</span></li>
-    <li><span>Click <b>Upload Library.xml</b>, or drag the file anywhere onto this page.</span></li>
+    <li><span>Click <b>Upload your files</b>, or drag the file anywhere onto this page.</span></li>
   </ol>
   <ol class="steps" id="steps-win" role="tabpanel" aria-labelledby="tab-win" hidden>
     <li><span>Open <b>iTunes</b> on your PC.</span></li>
     <li><span>Choose File → Library → Export Library… (press Alt if the menu bar is hidden).</span></li>
     <li><span>Save it as XML. You'll get a file like Library.xml.</span></li>
-    <li><span>Click <b>Upload Library.xml</b>, or drag the file anywhere onto this page.</span></li>
+    <li><span>Click <b>Upload your files</b>, or drag the file anywhere onto this page.</span></li>
   </ol>
-  <p class="fine">Play counts include your iPhone's plays when Sync Library is turned on. The export needs a computer; the iPhone app can't make one.</p>
+  <ol class="steps" id="steps-spotify" role="tabpanel" aria-labelledby="tab-spotify" hidden>
+    <li><span>On spotify.com, sign in and open your account's <b>Privacy</b> page. Find <b>Download your data</b>.</span></li>
+    <li><span>Tick <b>Extended streaming history</b> (every year you've used Spotify) and/or <b>Account data</b> (the past year, plus Liked Songs and playlists), then request it.</span></li>
+    <li><span>Spotify emails you a ZIP when it's ready, which can take days. Unzip it.</span></li>
+    <li><span>Click <b>Upload your files</b> and select all the .json files at once. Tracklog uses the streaming history, YourLibrary.json and Playlist files and ignores the rest.</span></li>
+  </ol>
+  <p class="fine">Apple Music: play counts include your iPhone's plays when Sync Library is turned on. The export needs a computer; the iPhone app can't make one. Spotify: a stream of 30 seconds or more counts as a play, a shorter one as a skip.</p>
   <div class="dialog-actions">
     <button class="btn ghost" id="close-help" type="button">Close</button>
-    <button class="btn" type="button" data-upload>Choose file</button>
+    <button class="btn" type="button" data-upload>Choose files</button>
   </div>
 </dialog>
 
-<div class="drop-overlay" id="drop-overlay" hidden>Drop Library.xml to analyze it</div>
+<dialog id="whose" aria-labelledby="whose-title">
+  <h2 id="whose-title">Whose files are these?</h2>
+  <p class="fine"><span id="whose-files"></span>. Add them to someone already here (say, your Spotify next to your Apple Music library), or to someone new to blend with.</p>
+  <div class="whose-choices" id="whose-choices"></div>
+  <div class="dialog-actions">
+    <button class="btn ghost" id="whose-cancel" type="button">Cancel</button>
+  </div>
+</dialog>
+
+<div class="drop-overlay" id="drop-overlay" hidden>Drop Library.xml or Spotify .json files to analyze them</div>
 
 <!-- SQLite (sql.js) is loaded by js/worker.js from vendor/, off the main thread. -->
 <script type="module" src="js/main.js"></script>
